@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout android:layout_width="fill_parent"
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_height="fill_parent" android:orientation="vertical">
+
+	<com.google.android.maps.MapView
+		android:id="@+id/mapView" android:layout_width="fill_parent"
+		android:layout_height="fill_parent" android:enabled="true"
+		android:clickable="true" android:apiKey="0q-wUWsI1XQdSkF00o7VZYCT2a5aeQo77SbhxwA" />
+
+	<LinearLayout android:orientation="horizontal"
+		android:layout_width="fill_parent" 
+		android:layout_height="50dip">
+		<Button android:id="@+id/register" 
+			android:layout_weight="0.5"
+			android:text="account"
+			android:layout_width="wrap_content" 
+			android:layout_height="wrap_content" />
+		<Button android:id="@+id/login" android:text="login"
+			android:layout_width="wrap_content" 
+			android:layout_weight="0.5"
+			android:layout_height="wrap_content" />
+		<TextView android:id="@+id/status" android:text="visitor"
+			android:layout_width="wrap_content" 
+			android:layout_height="50dip" 
+			android:layout_gravity="right"
+			android:gravity="center"
+			android:layout_weight="1"
+			android:textSize="22dip"
+			android:textColor="#ff33ffcc"
+			android:background="#7fff7f7f"/>
+	</LinearLayout>
+	<LinearLayout android:orientation="horizontal"
+		android:layout_width="fill_parent" android:layout_height="fill_parent"
+		android:layout_gravity="center">
+		<Button android:id="@+id/free_declare" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:layout_gravity="bottom"
+			android:gravity="center" android:text="On Hire!" />
+	</LinearLayout>
+</FrameLayout>
