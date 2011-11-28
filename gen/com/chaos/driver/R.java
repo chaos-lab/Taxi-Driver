@@ -11,20 +11,20 @@ public final class R {
     public static final class attr {
     }
     public static final class drawable {
-        public static final int driver=0x7f020000;
-        public static final int flower=0x7f020001;
-        public static final int ic_launcher=0x7f020002;
-        public static final int leafbunch1=0x7f020003;
-        public static final int passenger=0x7f020004;
+        public static final int ic_launcher=0x7f020000;
+        public static final int leafbunch1=0x7f020001;
+        public static final int passenger=0x7f020002;
+        public static final int taxi=0x7f020003;
     }
     public static final class id {
         public static final int accept=0x7f050002;
         public static final int caller_info=0x7f050000;
         public static final int car_label=0x7f050007;
         public static final int car_number=0x7f050008;
-        public static final int free_declare=0x7f05000e;
+        public static final int free_declare=0x7f05000f;
         public static final int login=0x7f05000c;
         public static final int mapView=0x7f05000a;
+        public static final int message=0x7f05000e;
         public static final int name_label=0x7f050005;
         public static final int nick_name=0x7f050006;
         public static final int phone_num=0x7f050003;

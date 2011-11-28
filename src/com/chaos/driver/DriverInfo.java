@@ -14,32 +14,33 @@ public class DriverInfo {
 	}
 
 	public String toString() {
-		return "PassengerInfo:\n" + "mNickName:" + mNickName + "mPhoneNumber:"
-				+ mPhoneNumber + "mCarNumber:" + mCarNumber;
+		return "PassengerInfo:\n" + "mNickName:" + mNickName + 
+		"mPhoneNumber:"+ mPhoneNumber + 
+		"mCarNumber:" + mCarNumber;
 	}
 
 	// getter & setter
-	public String getmNickName() {
+	public String getNickName() {
 		return mNickName;
 	}
 
-	public void setmNickName(String mNickName) {
+	public void setNickName(String mNickName) {
 		this.mNickName = mNickName;
 	}
 
-	public String getmPhoneNumber() {
+	public String getPhoneNumber() {
 		return mPhoneNumber;
 	}
 
-	public void setmPhoneNumber(String mPhoneNumber) {
+	public void setPhoneNumber(String mPhoneNumber) {
 		this.mPhoneNumber = mPhoneNumber;
 	}
 
-	public String getmCarNumber() {
+	public String getCarNumber() {
 		return mCarNumber;
 	}
 
-	public void setmCarNumber(String mCarNumber) {
+	public void setCarNumber(String mCarNumber) {
 		this.mCarNumber = mCarNumber;
 	}
 

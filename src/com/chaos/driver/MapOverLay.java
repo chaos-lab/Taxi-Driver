@@ -11,11 +11,12 @@ public class MapOverLay extends Overlay {
 	private MapView mapView;
 	private GeoPoint pos;
 	private Bitmap mBmp;
-
-	public MapOverLay(MapView view, GeoPoint pp,Bitmap bmp) {
+	protected Object mUserInfo;
+	public MapOverLay(MapView view, GeoPoint pp,Bitmap bmp,Object info) {
 		this.mapView = view;
 		this.pos = pp;
 		this.mBmp = bmp;
+		this.mUserInfo = info;
 	}
 
 	public boolean draw(Canvas canvas, MapView view, boolean shadow, long when) {
@@ -37,7 +38,7 @@ public class MapOverLay extends Overlay {
 		}
 	}
 
-	public boolean onTouchEvent(MotionEvent e, MapView view) {
+	/*public boolean onTouchEvent(MotionEvent e, MapView view) {
 		Point pt = new Point();
 		pt.x = (int) e.getX();
 		pt.y = (int) e.getY();
@@ -53,16 +54,15 @@ public class MapOverLay extends Overlay {
 
 		}
 		return false;
-	}
+	}*/
 
 	public boolean onTap(GeoPoint p, MapView v) {
 		Point pt = new Point();
 		v.getProjection().toPixels(p, pt);
-		if (beBeneathOverlay(pt)) {
+		if (beBeneathOverlay(pt) && mUserInfo != null) {
 			Toast.makeText(
 					mapView.getContext(),
-					p.getLatitudeE6() / 1E6 + " , " + p.getLongitudeE6()
-							/ 1E6, Toast.LENGTH_SHORT).show();
+					mUserInfo.toString(), Toast.LENGTH_LONG).show();
 			return true;
 		}
 		return false;
