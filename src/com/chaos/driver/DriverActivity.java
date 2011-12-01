@@ -40,20 +40,23 @@ public class DriverActivity extends MapActivity {
 	private Button btnAccount = null; // the button used to create an account
 	private Button btnFree = null; // the button used to declare a taxi to be on
 									// hire
+	private Button btnBack = null;
 	private TextView tvMsg = null;
 	private TextView tvOutput = null;
+	private TextView tvStatus = null;
 	// normal variable declaration
 	// mark activity be running or not
 	// update location if this variable is true
 	private boolean isRunning = true;
 	private DriverInfo mDrvInfo;
-	private List<PassengerInfo> mLstPsgInfo;
-	private int mStatus;	//current status of the taxi
+	private List<PassengerInfo> mLstPsgInfo;	//focused passengers
+	private int mStatus; // current status of the taxi
+	private int mPriStatus; // privilege status
 	private Object mSycObj = new Object();
-
-	//temp variables
-	private PassengerInfo mSelPassenger;		//the selected passenger 
-	private boolean bFirstInitMap;	//has map been first initialized or not
+	private int mPerspective;
+	// temp variables
+	private PassengerInfo mSelPassenger; // the selected passenger
+	private boolean bFirstInitMap; // has map been first initialized or not
 	// handler for the locationUpdateThread thread
 	private Handler thHandler = null;
 	private Handler bhHandler = null; // beat heart handler
@@ -76,21 +79,36 @@ public class DriverActivity extends MapActivity {
 	public final static int EXE_CALL_RESPONSE = 0x10000003;
 
 	// }
-	//{ taxi status
+	// { taxi status
 	public final static int OUT_OF_SERVICE = 0;
 	public final static int IDLE = 1;
-	public final static int RUNNING = 0;
+	public final static int RUNNING = 2;
+	public final static int PREPROCESS = 3;
+	public final static int PRERUNNING = 4;
+	// }
+	// { privilege status
+	public final static int VISITOR = 0;
+	public final static int LOGIN = 1;
+
+	// }
+	//perspective
+	public final static int DRIVE_MODE = 0; //in which one always focus on the car
+	public final static int VIEW_MODE = 1;		//in which one can view the map freely
 	//}
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-		this.updateStatus(IDLE);
 		initViews();
 		initLocation();
 		initThread();
+		this.updateStatus(IDLE);
+		setPriStatus(VISITOR);
+		updateUI();
 		mDrvInfo = new DriverInfo("visitor", "", "");
-		mLstPsgInfo = new LinkedList<PassengerInfo>();
+		synchronized (mSycObj) {
+			mLstPsgInfo = new LinkedList<PassengerInfo>();
+		}
 	}
 
 	private void initViews() {
@@ -99,7 +117,9 @@ public class DriverActivity extends MapActivity {
 		btnLoginout = (Button) findViewById(R.id.login);
 		btnAccount = (Button) findViewById(R.id.register);
 		btnFree = (Button) findViewById(R.id.free_declare);
-		tvMsg = (TextView)findViewById(R.id.message);
+		tvMsg = (TextView) findViewById(R.id.message);
+		tvStatus = (TextView)findViewById(R.id.status);
+		btnBack = (Button)findViewById(R.id.backtocar);
 		tvMsg.setVisibility(View.GONE);
 		btnLoginout.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
@@ -118,10 +138,16 @@ public class DriverActivity extends MapActivity {
 		btnFree.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				declareFree();
-				btnAccount.setVisibility(Button.GONE);
 			}
 		});
-		btnFree.setVisibility(View.GONE);
+		btnBack.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				setPerspective(DRIVE_MODE);
+				locationUpdateThread.start();
+				beatHeartThread.start();
+			}
+		});
+		updateUI();
 	}
 
 	private void initLocation() {
@@ -133,11 +159,13 @@ public class DriverActivity extends MapActivity {
 		mView.setTraffic(false);
 		mCtrl.setZoom(13);
 		tvMsg.setVisibility(View.VISIBLE);
+		//TODO: this code only will be used in emulator which cannot get lonlat from cell id
+		
 		/*String[] pointArray = { "32.03", "118.46" };
 		double lat = Double.parseDouble(pointArray[0]);
 		double lon = Double.parseDouble(pointArray[1]);
 		GeoPoint p = new GeoPoint((int) (lat * 1E6), (int) (lon * 1E6));
-		taxiMove(p);*/
+		taxiMove(p);		*/ 
 	}
 
 	private void initThread() {
@@ -156,7 +184,9 @@ public class DriverActivity extends MapActivity {
 		beatHeartThread = new Thread(new Runnable() {
 			public void run() {
 				while (isRunning) {
-					beatHeart();
+					synchronized (mSycObj) {
+						beatHeart();
+					}
 					try {
 						Thread.sleep(BEAT_HEART_INTERVAL);
 					} catch (Throwable e) {
@@ -167,9 +197,9 @@ public class DriverActivity extends MapActivity {
 		});
 		thHandler = new Handler() {
 			public void handleMessage(Message msg) {
-				if(!bFirstInitMap){
+				//TODO:this code will be used in real phone version
+				if (!bFirstInitMap) {
 					tvMsg.setVisibility(View.GONE);
-					beatHeartThread.start();
 					bFirstInitMap = true;
 				}
 				Double lon = msg.getData().getDouble(LOC_LON) * LOC2GEO;
@@ -187,88 +217,89 @@ public class DriverActivity extends MapActivity {
 					taxiMove(mTaxiPos);
 					for (int i = 0; i < reqCnt; i++) {
 						PassengerInfo psg = mLstPsgInfo.get(i);
-						Double lon = psg.getSrcLoc().getLongitude()*1000000;
-						Double lat = psg.getSrcLoc().getLatitude()*1000000;
+						Double lon = psg.getSrcLoc().getLongitude() * 1000000;
+						Double lat = psg.getSrcLoc().getLatitude() * 1000000;
 						// get geo point
 						GeoPoint p = new GeoPoint(lat.intValue(),
 								lon.intValue());
-						addMetaPassenger(p,psg);
+						addMetaPassenger(p, psg);
 					}
-					mLstPsgInfo.clear();
+					//mLstPsgInfo.clear();
 				}
 			}
 		};
-		locationUpdateThread.start();
+		//TODO: this code only will be used in emulator which cannot get lonlat from cell id
+		/*if (!bFirstInitMap) {
+			tvMsg.setVisibility(View.GONE);
+			beatHeartThread.start();
+			bFirstInitMap = true;
+		}*/
 	}
 
 	public void onActivityResult(int requestCode, int resultCode, Intent data) {
-		if (EXE_LOGIN == requestCode) {
-			if (Login.LOGIN_SUCCEED == resultCode) {
-				btnLoginout.setText("logout");
-				btnAccount.setVisibility(View.GONE);
+		synchronized (mSycObj) {
+			if (EXE_LOGIN == requestCode) {
+				if (Login.LOGIN_SUCCEED == resultCode) {
+					setPriStatus(LOGIN);
+					try {
+						JSONObject jsonSelf = new JSONObject(
+								data.getStringExtra(Login.RET_OBJ));
+						mDrvInfo.setPhoneNumber(jsonSelf
+								.getString("phone_number"));
+						mDrvInfo.setNickName(jsonSelf.getString("nickname"));
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+
+				String msg = data.getStringExtra(Login.RET_MSG);
+				if (msg != null) {
+					if (msg.length() > 0) {
+						Toast.makeText(mView.getContext(), msg,
+								Toast.LENGTH_LONG).show();
+					}
+				}
+			} else if (EXE_ACCOUNT == requestCode) {
+				String msg = data.getStringExtra(Login.RET_MSG);
+				if (msg != null) {
+					if (msg.length() > 0) {
+						Toast.makeText(mView.getContext(), msg,
+								Toast.LENGTH_LONG).show();
+					}
+				}
+			} else if (EXE_CALL_RESPONSE == requestCode) { // call taxi response
+
 				try {
-					JSONObject jsonSelf = new JSONObject(
-							data.getStringExtra(Login.RET_OBJ));
-					mDrvInfo.setPhoneNumber(jsonSelf.getString("phone_number"));
-					mDrvInfo.setNickName(jsonSelf.getString("nickname"));
+					JSONObject jsonObj = new JSONObject();
+					jsonObj.put("id", mSelPassenger.getID());
+					String url = HttpConnectUtil.WEB + "service/reply";
+					HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
+					if (HireCall.ACCPECT == resultCode) { // accept this request
+
+						jsonObj.put("accept", true);
+						this.updateStatus(RUNNING);
+						synchronized (mSycObj) {
+							mLstPsgInfo.clear(); //involved passenger will be only this one
+							mLstPsgInfo.add(mSelPassenger);
+							bhHandler.sendMessage(bhHandler.obtainMessage());
+						}
+					} else {
+						// do nothing
+						jsonObj.put("accept", false);
+						this.updateStatus(IDLE);
+					}
+					if (HttpConnectUtil.post(url, jsonObj, rd)) {
+						if (HttpConnectUtil.parseLoginResponse(rd.strResponse) == 0) {
+							Toast.makeText(mView.getContext(),
+									"Prepare to pick passenger!",
+									Toast.LENGTH_LONG).show();
+						}
+					}
 				} catch (JSONException e) {
 					e.printStackTrace();
 				}
-			} else {
-				btnLoginout.setText("login");
 			}
-			
-			String msg = data.getStringExtra(Login.RET_MSG);
-			if (msg != null) {
-				if (msg.length() > 0) {
-					Toast.makeText(mView.getContext(), msg, Toast.LENGTH_LONG)
-							.show();
-				}
-			}
-		} else if (EXE_ACCOUNT == requestCode) {
-			if (Login.REGISTER_SUCCED == resultCode) {
-				btnAccount.setVisibility(View.GONE);
-			}
-			String msg = data.getStringExtra(Login.RET_MSG);
-			if (msg != null) {
-				if (msg.length() > 0) {
-					Toast.makeText(mView.getContext(), msg, Toast.LENGTH_LONG)
-							.show();
-				}
-			}
-		} else if (EXE_CALL_RESPONSE == requestCode) { // call taxi response
-
-			try {
-				JSONObject jsonObj = new JSONObject();
-				jsonObj.put("id", mSelPassenger.getID());
-				String url = HttpConnectUtil.WEB + "service/reply";
-				HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
-				if (HireCall.ACCPECT == resultCode) { // accept this request
-					
-					jsonObj.put("accept", true);
-					btnFree.setVisibility(View.VISIBLE);
-					this.updateStatus(RUNNING);
-					synchronized (mSycObj) {
-						mLstPsgInfo.clear();
-						mLstPsgInfo.add(mSelPassenger);
-						bhHandler.sendMessage(bhHandler.obtainMessage());
-					}
-				} else {
-					// do nothing
-					jsonObj.put("accept", false);
-					btnFree.setVisibility(View.GONE);
-					this.updateStatus(IDLE);
-				}
-				if (HttpConnectUtil.post(url, jsonObj, rd)) {
-					if (HttpConnectUtil.parseLoginResponse(rd.strResponse) == 0) {
-						Toast.makeText(mView.getContext(),
-								"Prepare to pick passenger!", Toast.LENGTH_LONG)
-								.show();
-					}
-				}
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
+			updateUI();
 		}
 	}
 
@@ -309,6 +340,9 @@ public class DriverActivity extends MapActivity {
 		intent.putExtras(bundle);
 		this.startActivityForResult(intent, EXE_LOGIN);
 
+		locationUpdateThread.start();
+		beatHeartThread.start();
+
 	}
 
 	// could be called only while one has been authorized
@@ -318,10 +352,12 @@ public class DriverActivity extends MapActivity {
 		JSONObject jsonObj = new JSONObject();
 		if (HttpConnectUtil.post(url, jsonObj, rd)) {
 			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) == 0) {
-				btnLoginout.setText("login");
-				btnAccount.setVisibility(View.VISIBLE);
+				setPriStatus(VISITOR);
 				Toast.makeText(mView.getContext(), "log out succeed!",
 						Toast.LENGTH_LONG).show();
+				locationUpdateThread.stop();
+				beatHeartThread.stop();
+				updateUI();
 			}
 		}
 	}
@@ -341,45 +377,48 @@ public class DriverActivity extends MapActivity {
 		String url = HttpConnectUtil.WEB + "service/complete";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
 		JSONObject jsonObj = new JSONObject();
-		try{
+		try {
 			jsonObj.put("id", 123);
-		}catch(JSONException e){
+		} catch (JSONException e) {
 			e.printStackTrace();
-			Log.d("complete","complete failed!");
+			Log.d("complete", "complete failed!");
 		}
 		if (HttpConnectUtil.get(url, jsonObj, rd)) {
 			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
-				Log.d("complete","failed to connect to server!");
+				Log.d("complete", "failed to connect to server!");
 			}
 		}
-		
+
 		updateStatus(IDLE);
+		updateUI();
 		synchronized (mSycObj) {
-			mLstPsgInfo.clear();
+			mLstPsgInfo.clear();	//clear all passenger and wait for the following taxi call
 			bhHandler.sendMessage(bhHandler.obtainMessage());
 		}
 	}
-	private void updateStatus(int status){
+
+	private void updateStatus(int status) {
 		setStatus(status);
-		String url = HttpConnectUtil.WEB + "driver/update";
+		String url = HttpConnectUtil.WEB + "driver/taxi/update";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
 		JSONObject jsonObj = new JSONObject();
-		try{
+		try {
 			jsonObj.put("status", status);
-		}catch(JSONException e){
+		} catch (JSONException e) {
 			e.printStackTrace();
-			Log.d("status","update status failed!");
+			Log.d("status", "update status failed!");
 		}
 		if (HttpConnectUtil.get(url, jsonObj, rd)) {
 			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
-				Log.d("status","failed to connect to server!");
+				Log.d("status", "failed to connect to server!");
 			}
 		}
 	}
+
 	private void addTaxiOverlay(GeoPoint p) {
 		mView.getOverlays().remove(mTaxiOverlay);
 		mTaxiOverlay = new MapOverLay(mView, p, BitmapFactory.decodeResource(
-				this.getResources(), R.drawable.taxi),null);
+				this.getResources(), R.drawable.taxi), mDrvInfo);
 		mView.getOverlays().add(mTaxiOverlay);
 	}
 
@@ -391,40 +430,45 @@ public class DriverActivity extends MapActivity {
 		String url = HttpConnectUtil.WEB + "driver/location/update";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
 		JSONObject jsonObj = new JSONObject();
-		try{
+		try {
 			jsonObj.put("latitude", p.getLatitudeE6());
 			jsonObj.put("longitude", p.getLatitudeE6());
-		}catch(JSONException e){
+		} catch (JSONException e) {
 			e.printStackTrace();
-			Log.d("update location","update location failed!");
+			Log.d("update location", "update location failed!");
 		}
 		if (HttpConnectUtil.get(url, jsonObj, rd)) {
 			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
-				Log.d("update location","failed to connect to server!");
+				Log.d("update location", "failed to connect to server!");
 			}
 		}
 	}
 
-	private void addMetaPassenger(GeoPoint p,PassengerInfo info) {
+	private void addMetaPassenger(GeoPoint p, PassengerInfo info) {
 		mView.getOverlays().add(
 				new MapOverLay(mView, p, BitmapFactory.decodeResource(
-						this.getResources(), R.drawable.passenger),info){
+						this.getResources(), R.drawable.passenger), info) {
 					public boolean onTouchEvent(MotionEvent e, MapView view) {
 						Point pt = new Point();
 						pt.x = (int) e.getX();
 						pt.y = (int) e.getY();
 						if (beBeneathOverlay(pt)) {
-							if (MotionEvent.ACTION_MOVE == e.getAction()) {
-								Intent intent = new Intent(DriverActivity.this,
-										HireCall.class);
-								Bundle bundle = new Bundle();
-								bundle.putString(CALLER,
-										this.mUserInfo.toString());
-								intent.putExtras(bundle);
-								startActivityForResult(intent,
-										EXE_CALL_RESPONSE);
-								mSelPassenger = (PassengerInfo) this.mUserInfo;
-								return true;
+							synchronized (mSycObj) {
+								if (MotionEvent.ACTION_MOVE == e.getAction()
+										&& PREPROCESS == getStatus()
+										&& getPriStatus() == LOGIN) {
+									Intent intent = new Intent(
+											DriverActivity.this, HireCall.class);
+									Bundle bundle = new Bundle();
+									bundle.putString(CALLER,
+											this.mUserInfo.toString());
+									intent.putExtras(bundle);
+									startActivityForResult(intent,
+											EXE_CALL_RESPONSE);
+									mSelPassenger = (PassengerInfo) this.mUserInfo;
+									setStatus(PRERUNNING);
+									return true;
+								}
 							}
 						}
 						return false;
@@ -436,9 +480,9 @@ public class DriverActivity extends MapActivity {
 	private void beatHeart() {
 		String url = HttpConnectUtil.WEB + "driver/refresh";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
-		//if (HttpConnectUtil.get(url, null, rd)) {
-		//a dummy one
-		if(genDummyUser(rd)){
+		// if (HttpConnectUtil.get(url, null, rd)) {
+		// a dummy one
+		if (genDummyUser(rd)) {
 			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) == 0) {
 				Message msg = bhHandler.obtainMessage();
 				try {
@@ -448,131 +492,227 @@ public class DriverActivity extends MapActivity {
 						// JSONObject jsonMsg = new JSONObject(strMsg);
 						JSONArray jsonArray = new JSONArray(strMsg);
 						int iMsgCnt = jsonArray.length();
-						synchronized(mSycObj){
-							for (int i = 0; i < iMsgCnt; i++) {
-								JSONObject jsonMsg = jsonArray.getJSONObject(i);
-								String type = jsonMsg.getString("type");
-								if (type.equalsIgnoreCase("call-taxi")
-										&& mStatus == IDLE) {
-									PassengerInfo psg = new PassengerInfo();
-									JSONObject jsonPassenger = new JSONObject(
-											jsonMsg.getString("passenger"));
-									psg.setNickName(jsonPassenger
-											.getString("nickname"));
-									psg.setPhoneNumber(jsonPassenger
-											.getString("phone_number"));
-									psg.setID(jsonMsg.getInt("id"));
-									psg.setTimeStamp(jsonMsg
-											.getInt("timestamp"));
+						for (int i = 0; i < iMsgCnt; i++) {
+							JSONObject jsonMsg = jsonArray.getJSONObject(i);
+							String type = jsonMsg.getString("type");
+							if (type.equalsIgnoreCase("call-taxi")
+									&& getStatus() != RUNNING && getStatus() != OUT_OF_SERVICE) {
+								PassengerInfo psg = new PassengerInfo();
+								JSONObject jsonPassenger = new JSONObject(
+										jsonMsg.getString("passenger"));
+								psg.setNickName(jsonPassenger
+										.getString("nickname"));
+								psg.setPhoneNumber(jsonPassenger
+										.getString("phone_number"));
+								psg.setID(jsonMsg.getInt("id"));
+								psg.setTimeStamp(jsonMsg.getInt("timestamp"));
+								JSONObject jsonSrcLoc = new JSONObject(
+										jsonMsg.optString("location"));
+								Location loc = new Location("chaos lab");
+								loc.setLongitude(jsonSrcLoc.optDouble(LOC_LON));
+								loc.setLatitude(jsonSrcLoc.optDouble(LOC_LAT));
+								psg.setSrcLoc(loc);
+								JSONObject jsonDestLoc = new JSONObject(
+										jsonMsg.optString("destination"));
+								loc = new Location("chaos lab");
+								loc.setLongitude(jsonDestLoc.optDouble(LOC_LON));
+								loc.setLatitude(jsonDestLoc.optDouble(LOC_LAT));
+								psg.setDestLoc(loc);
+								mLstPsgInfo.add(psg);	//all requesting passenger will be shown
+							} else if (type
+									.equalsIgnoreCase("call-taxi-cancel")) {
+								int id = jsonMsg.getInt("id");
+								int iSize = mLstPsgInfo.size();	//only check my interesting passenger list
+								for(int p=0;p<iSize;p++){
+									PassengerInfo psg = mLstPsgInfo.get(p);
+									if (psg.getID() == id){
+										mLstPsgInfo.remove(psg);
+										Toast.makeText(getBaseContext(), "passenger" + 
+												psg.getNickName()+"has just cancelled the taxi call", 
+												Toast.LENGTH_LONG);
+									}
+								}
+
+							} else if (type.equalsIgnoreCase("location-update")) {
+								String pn = jsonMsg.getString("phone_number");
+								if (mSelPassenger.getPhoneNumber().equalsIgnoreCase(pn) && 
+										getStatus() == RUNNING) { //while running
+									Location loc = new Location("chaos lab");
 									JSONObject jsonSrcLoc = new JSONObject(
 											jsonMsg.optString("location"));
-									Location loc = new Location("chaos lab");
 									loc.setLongitude(jsonSrcLoc
 											.optDouble(LOC_LON));
 									loc.setLatitude(jsonSrcLoc
 											.optDouble(LOC_LAT));
-									psg.setSrcLoc(loc);
-									JSONObject jsonDestLoc = new JSONObject(
-											jsonMsg.optString("destination"));
-									loc = new Location("chaos lab");
-									loc.setLongitude(jsonDestLoc
-											.optDouble(LOC_LON));
-									loc.setLatitude(jsonDestLoc
-											.optDouble(LOC_LAT));
-									psg.setDestLoc(loc);
-									mLstPsgInfo.add(psg);
-								} else if (type
-										.equalsIgnoreCase("call-taxi-cancel")
-										&& mStatus == RUNNING) {
-
-								}else if(type.equalsIgnoreCase("location-update")){
-									String pn = jsonMsg.getString("phone_number");
-									if (mSelPassenger.getPhoneNumber()
-											.equalsIgnoreCase(pn)) {
-										Location loc = new Location("chaos lab");
-										JSONObject jsonSrcLoc = new JSONObject(
-												jsonMsg.optString("location"));
-										loc.setLongitude(jsonSrcLoc
-												.optDouble(LOC_LON));
-										loc.setLatitude(jsonSrcLoc
-												.optDouble(LOC_LAT));
-										mSelPassenger.setSrcLoc(loc);
-										mLstPsgInfo.add(mSelPassenger);
-									}
-									
-								}
-							}
-						}
-					}
+									mSelPassenger.setSrcLoc(loc);
+									mLstPsgInfo.clear();
+									mLstPsgInfo.add(mSelPassenger);
+								}else{//while not running
+									int iSize = mLstPsgInfo.size();
+									for(int p=0;p<iSize;p++){
+										PassengerInfo psg = mLstPsgInfo.get(p);
+										if (psg.getPhoneNumber().equalsIgnoreCase(pn)){
+											Location loc = new Location("chaos lab");
+											JSONObject jsonSrcLoc = new JSONObject(
+													jsonMsg.optString("location"));
+											loc.setLongitude(jsonSrcLoc
+													.optDouble(LOC_LON));
+											loc.setLatitude(jsonSrcLoc
+													.optDouble(LOC_LAT));
+											psg.setSrcLoc(loc);
+										} //end of if
+									}//end of for
+								}//end of else
+							}//end of else if (type.equalsIgnoreCase("location-update"))
+						}//end of for (int i = 0; i < iMsgCnt; i++)
+					}//end of if (jsonResp.length() > 0) 
 					bhHandler.sendMessage(msg);
-					//treat it as be running while get message
-					//the status will be changed to the real value after the message being processed
-					setStatus(RUNNING);
+					// treat it as be running while get message
+					// the status will be changed to the real value after the
+					// message being processed
+					setStatus(PREPROCESS);
 				} catch (JSONException e) {
 					e.printStackTrace();
-				}
+				}//end of try
 			}
 		}
 	}
-	private boolean genDummyUser(ResonpseData rd) {
-		if( mStatus == RUNNING){
+	private void updateUI(){
+		synchronized (mSycObj) {
+			switch (mPriStatus) {
+			case LOGIN:
+				btnLoginout.setText("logout");
+				String welcom = "welcome";
+				if (mDrvInfo != null) {
+					welcom += ", " + mDrvInfo.getNickName() + "!";
+				}
+				tvStatus.setText(welcom);
+				btnAccount.setVisibility(View.GONE);
+				break;
+			case VISITOR:
+				btnLoginout.setText("login");
+				tvStatus.setText("welcome,visitor!");
+				btnAccount.setVisibility(View.VISIBLE);
+				break;
+			default:
+				Log.d("error", "unexcepted privilege status");
+				break;
+			}
+			switch (mStatus) {
+			case OUT_OF_SERVICE:
+				btnFree.setVisibility(View.GONE);
+				break;
+			case IDLE:
+			case PREPROCESS:
+			case PRERUNNING:
+				btnFree.setVisibility(View.GONE);
+				break;
+			case RUNNING:
+				btnFree.setVisibility(View.VISIBLE);
+				break;
+			default:
+				Log.d("error", "unexcepted status");
+				break;
+			}
+			switch(mPerspective){
+			case DRIVE_MODE:
+				btnBack.setVisibility(View.GONE);
+				break;
+			case VIEW_MODE:
+				btnBack.setVisibility(View.VISIBLE);
+				break;
+				default:
+					break;
+			}
+		}
+	}
+
+	public boolean onTrackballEvent(MotionEvent e){
+		setPerspective(VIEW_MODE);
+		locationUpdateThread.stop();
+		beatHeartThread.stop();
+		return super.onTrackballEvent(e);
+	}
+ 	private boolean genDummyUser(ResonpseData rd) {
+		if (getStatus() != IDLE || getPriStatus() != LOGIN) {
 			return false;
 		}
 		JSONObject jsonObj = new JSONObject();
-		try{
+		try {
 			jsonObj.put("status", 0);
 			JSONArray message = new JSONArray();
 			JSONObject m1 = new JSONObject();
 			m1.put("type", "call-taxi");
 			JSONObject p1 = new JSONObject();
 			p1.put("phone_number", "1384323242");
-			p1.put("nickname","liufy");
+			p1.put("nickname", "liufy");
 			m1.put("passenger", p1);
 			JSONObject srcloc1 = new JSONObject();
-			srcloc1.put("longitude", 118.90);
+			srcloc1.put("longitude", 118.48);
 			srcloc1.put("latitude", 32.056);
-			m1.put("location",srcloc1);
+			m1.put("location", srcloc1);
 			JSONObject destloc1 = new JSONObject();
 			destloc1.put("longitude", 118.23432);
 			destloc1.put("latitude", 32.4343);
-			m1.put("destination",destloc1);
+			m1.put("destination", destloc1);
 			m1.put("id", 1321875549);
 			m1.put("timestamp", 1321875549);
 			message.put(0, m1);
-			
-			//m2
+
+			// m2
 			JSONObject m2 = new JSONObject();
 			m2.put("type", "call-taxi");
 			JSONObject p2 = new JSONObject();
 			p2.put("phone_number", "13913394580");
-			p2.put("nickname","canglj");
+			p2.put("nickname", "canglj");
 			m2.put("passenger", p2);
 			JSONObject srcloc2 = new JSONObject();
-			srcloc2.put("longitude", 118.95);
+			srcloc2.put("longitude", 118.47);
 			srcloc2.put("latitude", 32.090);
-			m2.put("location",srcloc2);
+			m2.put("location", srcloc2);
 			JSONObject destloc2 = new JSONObject();
 			destloc2.put("longitude", 118.463);
 			destloc2.put("latitude", 32.032);
-			m2.put("destination",destloc2);
+			m2.put("destination", destloc2);
 			m2.put("id", 1321875549);
 			m2.put("timestamp", 1321875549);
 			message.put(1, m2);
 			jsonObj.put("messages", message);
 			rd.strResponse = jsonObj.toString();
-		}catch(JSONException e){
+		} catch (JSONException e) {
 			e.printStackTrace();
 		}
-		
+
 		return true;
 	}
 
-	//getter && setter
+	// getter && setter
 	public int getStatus() {
 		return mStatus;
 	}
 
 	public void setStatus(int mStatus) {
-		this.mStatus = mStatus;
+		synchronized (mSycObj) {
+			this.mStatus = mStatus;
+		}
 	}
+
+	public int getPriStatus() {
+		return mPriStatus;
+	}
+
+	public void setPriStatus(int status) {
+		synchronized (mSycObj) {
+			this.mPriStatus = status;
+		}
+	}
+
+	public int getPerspective() {
+		return mPerspective;
+	}
+
+	public void setPerspective(int p) {
+		this.mPerspective = p;
+	}
+	
 }

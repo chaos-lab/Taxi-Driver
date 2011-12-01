@@ -45,11 +45,22 @@
 			android:background="#7fbbeeff"
 			/>
 	</LinearLayout>
-	<LinearLayout android:orientation="horizontal"
-		android:layout_width="fill_parent" android:layout_height="fill_parent"
-		android:layout_gravity="center">
-		<Button android:id="@+id/free_declare" android:layout_width="wrap_content"
-			android:layout_height="wrap_content" android:layout_gravity="bottom"
-			android:gravity="center" android:text="On Hire!" />
+	<LinearLayout android:orientation="vertical"
+		android:layout_width="wrap_content" android:layout_height="wrap_content"
+		android:layout_gravity="bottom">
+		<Button android:id="@+id/free_declare"
+		 	android:layout_width="wrap_content"
+			android:layout_height="wrap_content" 
+			android:layout_weight="1"
+			android:layout_gravity="center"
+			android:gravity="center" 
+			android:text="On Hire!" />
+			<Button android:id="@+id/backtocar"
+		 	android:layout_width="wrap_content"
+			android:layout_height="wrap_content" 
+			android:layout_weight="1"
+			android:layout_gravity="right"
+			android:gravity="center" 
+			android:text="Back" />
 	</LinearLayout>
 </FrameLayout>

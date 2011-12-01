@@ -18,6 +18,7 @@ public final class R {
     }
     public static final class id {
         public static final int accept=0x7f050002;
+        public static final int backtocar=0x7f050010;
         public static final int caller_info=0x7f050000;
         public static final int car_label=0x7f050007;
         public static final int car_number=0x7f050008;
