@@ -3,7 +3,7 @@
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	android:layout_height="fill_parent" android:orientation="vertical">
 
-	<com.google.android.maps.MapView
+	<com.chaos.driver.TaxiMapView
 		android:id="@+id/mapView" android:layout_width="fill_parent"
 		android:layout_height="fill_parent" android:enabled="true"
 		android:clickable="true" android:apiKey="0q-wUWsI1XQdSkF00o7VZYCT2a5aeQo77SbhxwA" />
@@ -45,16 +45,16 @@
 			android:background="#7fbbeeff"
 			/>
 	</LinearLayout>
-	<LinearLayout android:orientation="vertical"
+	<LinearLayout android:orientation="horizontal"
 		android:layout_width="wrap_content" android:layout_height="wrap_content"
 		android:layout_gravity="bottom">
 		<Button android:id="@+id/free_declare"
 		 	android:layout_width="wrap_content"
 			android:layout_height="wrap_content" 
 			android:layout_weight="1"
-			android:layout_gravity="center"
+			android:layout_gravity="left"
 			android:gravity="center" 
-			android:text="On Hire!" />
+			android:text="On Service" />
 			<Button android:id="@+id/backtocar"
 		 	android:layout_width="wrap_content"
 			android:layout_height="wrap_content" 

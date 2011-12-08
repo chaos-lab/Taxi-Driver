@@ -1,10 +1,7 @@
 package com.chaos.driver;
 
 import com.google.android.maps.*;
-
-import android.content.Context;
 import android.graphics.*;
-import android.view.MotionEvent;
 import android.widget.Toast;
 
 public class MapOverLay extends Overlay {

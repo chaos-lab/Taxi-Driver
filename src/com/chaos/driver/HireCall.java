@@ -21,7 +21,7 @@ public class HireCall extends Activity{
 		mBtnAccept = (Button)findViewById(R.id.accept);
 		mBtnRefuse = (Button)findViewById(R.id.refuse);
 		mTvPassenger = (TextView)findViewById(R.id.caller_info);
-		mTvPassenger.setText(getIntent().getExtras().getString(DriverActivity.CALLER));
+		mTvPassenger.setText(getIntent().getExtras().getString(DriverConst.CALLER));
 		mBtnAccept.setOnClickListener(new OnClickListener(){
 			public void onClick(View v){
 				setResult(ACCPECT);

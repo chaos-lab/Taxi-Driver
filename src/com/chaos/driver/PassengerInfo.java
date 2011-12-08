@@ -33,6 +33,16 @@ public class PassengerInfo {
 			"\nlongitude:" + mSrcLoc.getLongitude() +
 			"\nlatitude:" + mSrcLoc.getLatitude();
 		}
+		public PassengerInfo clone(){
+			PassengerInfo psg = new PassengerInfo(this.mNickName,this.mPhoneNumber);
+			psg.mID = this.mID;
+			psg.mTimeStamp = this.mTimeStamp;
+			psg.mSrcLoc = new Location("chaos lab");
+			psg.mSrcLoc.set(this.mSrcLoc);
+			psg.mDestLoc = new Location("chaos lab");
+			psg.mDestLoc.set(this.mDestLoc);
+			return psg;
+		}
 		//getter & setter
 		public String getNickName() {
 			return mNickName;

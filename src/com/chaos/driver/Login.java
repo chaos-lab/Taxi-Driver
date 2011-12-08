@@ -1,15 +1,4 @@
 package com.chaos.driver;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.URLEncoder;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -24,7 +13,6 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class Login extends Activity {
 	// UI member
@@ -54,13 +42,13 @@ public class Login extends Activity {
 
 		Type(int cmd_code) throws Throwable {
 			this.cmd_code = cmd_code;
-			if (DriverActivity.EXE_LOGIN == cmd_code) {
+			if (DriverConst.EXE_LOGIN == cmd_code) {
 				ret_code = new int[2];
 				site = new String();
 				ret_code[0] = Login.LOGIN_SUCCEED;
 				ret_code[1] = Login.LOGIN_FAILED;
 				site = Login.LOGIN_SITE;
-			} else if (DriverActivity.EXE_ACCOUNT == cmd_code) {
+			} else if (DriverConst.EXE_ACCOUNT == cmd_code) {
 				ret_code = new int[2];
 				site = new String();
 				ret_code[0] = Login.REGISTER_SUCCED;
@@ -80,13 +68,13 @@ public class Login extends Activity {
 		btnSubmit.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				//intent.setAction(String.valueOf(register()));
-				setResult(register(),intent);
+				setResult(register(getIntent().getExtras().get("lock")),intent);
 				finish();
 			}
 		});
 		try {
 			int cmd_code = this.getIntent().getExtras()
-					.getInt(DriverActivity.EXE_CODE);
+					.getInt(DriverConst.EXE_CODE);
 			initView(cmd_code);
 			type = new Type(cmd_code);
 		} catch (Throwable e) {
@@ -94,14 +82,14 @@ public class Login extends Activity {
 		}
 	}
 
-	private int register() {
+	private int register(Object lock) {
 		String url = HttpConnectUtil.WEB + type.site;
 		try {
 			JSONObject jsonObj = new JSONObject();
-			if (DriverActivity.EXE_LOGIN == type.cmd_code) {
+			if (DriverConst.EXE_LOGIN == type.cmd_code) {
 				jsonObj.put("phone_number", phoneView.getText());
 				jsonObj.put("password", pswView.getText());
-			} else if (DriverActivity.EXE_ACCOUNT == type.cmd_code) {
+			} else if (DriverConst.EXE_ACCOUNT == type.cmd_code) {
 				jsonObj.put("phone_number", phoneView.getText());
 				jsonObj.put("password", pswView.getText());
 				jsonObj.put("nickname", nick_name_view.getText());
@@ -110,6 +98,9 @@ public class Login extends Activity {
 			HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
 			if (HttpConnectUtil.post(url, jsonObj, rd)) {
 				return parseLoginResponse(rd.strResponse);
+			}else{
+				Log.e("register/login",rd.strResponse);
+				intent.putExtra(RET_MSG, rd.strResponse);
 			}
 
 			return type.ret_code[1];
@@ -126,22 +117,25 @@ public class Login extends Activity {
 			JSONObject jsonObj = new JSONObject(response);
 			int status = HttpConnectUtil.parseLoginResponse(response);
 			if (0 == status) {
-				if (DriverActivity.EXE_LOGIN == type.cmd_code) {
+				if (DriverConst.EXE_LOGIN == type.cmd_code) {
 					String msg = jsonObj.getString("message");
 					intent.putExtra(RET_MSG, msg);
 					intent.putExtra(RET_OBJ,jsonObj.getJSONObject("self").toString());
 				}
 				return type.ret_code[0];
 			} else {
-				if (DriverActivity.EXE_LOGIN == type.cmd_code) {
-					intent.putExtra(RET_MSG, "login failed!");
+				if (DriverConst.EXE_LOGIN == type.cmd_code) {
+					Log.e("login",response);
+					intent.putExtra(RET_MSG, "login failed! \ndetail: \n"+response);
 				} else {
-					intent.putExtra(RET_MSG, "create account failed!");
+					Log.e("account",response);
+					intent.putExtra(RET_MSG, "create account failed!\ndetail: \n"+response);
 				}
 				return type.ret_code[1];
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();
+			intent.putExtra(RET_MSG, response);
 			return type.ret_code[1];
 		}
 	}
@@ -155,12 +149,12 @@ public class Login extends Activity {
 		pswView = (EditText) findViewById(R.id.psw);
 		nick_name_view = (EditText) findViewById(R.id.nick_name);
 		car_num_view = (EditText) findViewById(R.id.car_number);
-		if (DriverActivity.EXE_LOGIN == cmd_code) {
+		if (DriverConst.EXE_LOGIN == cmd_code) {
 			nick_name_view.setVisibility(View.GONE);
 			car_num_view.setVisibility(View.GONE);
 			((TextView) findViewById(R.id.name_label)).setVisibility(View.GONE);
 			((TextView) findViewById(R.id.car_label)).setVisibility(View.GONE);
-		} else if (DriverActivity.EXE_ACCOUNT == cmd_code) {
+		} else if (DriverConst.EXE_ACCOUNT == cmd_code) {
 			nick_name_view.setVisibility(View.VISIBLE);
 			car_num_view.setVisibility(View.VISIBLE);
 			((TextView) findViewById(R.id.name_label))
@@ -172,14 +166,14 @@ public class Login extends Activity {
 			throw new Throwable();
 		}
 	}
-
+/*
 	private boolean genJSONData(int cmd_code, JSONObject jsonObj) {
 		try {
-			if (DriverActivity.EXE_LOGIN == cmd_code) {
+			if (DriverConst.EXE_LOGIN == cmd_code) {
 				jsonObj.put("phone_number", phoneView.getText());
 				jsonObj.put("password", pswView.getText());
 				return true;
-			} else if (DriverActivity.EXE_ACCOUNT == cmd_code) {
+			} else if (DriverConst.EXE_ACCOUNT == cmd_code) {
 				jsonObj.put("phone_number", phoneView.getText());
 				jsonObj.put("password", pswView.getText());
 				jsonObj.put("nickname", nick_name_view.getText());
@@ -192,5 +186,5 @@ public class Login extends Activity {
 			jsonException.printStackTrace();
 			return false;
 		}
-	}
+	}*/
 }
