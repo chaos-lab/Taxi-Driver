@@ -1,11 +1,17 @@
 package com.chaos.driver;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.chaos.driver.Util.HttpConnectUtil;
+import com.chaos.driver.util.DriverConst;
+import com.chaos.driver.util.HttpConnectUtil;
 import com.google.android.maps.GeoPoint;
+import com.google.android.maps.Overlay;
 
 import com.google.android.maps.*;
 
@@ -13,7 +19,11 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.gesture.GestureOverlayView;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
+import android.graphics.RectF;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
@@ -23,7 +33,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class DriverActivity extends MapActivity {
+public class DriverActivity extends MapActivity implements GestureHandler{
 	/** Called when the activity is first created. */
 	// UI elements declaration
 	private TaxiMapView mView;
@@ -48,7 +58,7 @@ public class DriverActivity extends MapActivity {
 
 	private DriverAssist mAssist;
 	private HashMap<PassengerInfo, Overlay> mPsgOverlayMap;
-
+	private GestureView mGestureView;
 	// }
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -62,7 +72,7 @@ public class DriverActivity extends MapActivity {
 		updateUI();
 		mDrvInfo = new DriverInfo("visitor", "", "");
 		mPsgOverlayMap = new HashMap<PassengerInfo, Overlay>();
-		Dialog dlg = new AlertDialog.Builder(this).setTitle("test alert dialog")
+		/*Dialog dlg = new AlertDialog.Builder(this).setTitle("test alert dialog")
 		.setSingleChoiceItems(R.array.colors, 0, new DialogInterface.OnClickListener() {
 			
 			@Override
@@ -76,9 +86,35 @@ public class DriverActivity extends MapActivity {
 			}
 		}).create();
 		
-		dlg.show();
+		dlg.show();*/
 	}
-
+	protected void onPause(){
+		SharedPreferences.Editor editor = this.getPreferences(0).edit();
+		if (mTaxiPos != null) {
+			editor.putInt(DriverConst.LOC_LAT, mTaxiPos.getLatitudeE6());
+			editor.putInt(DriverConst.LOC_LON, mTaxiPos.getLongitudeE6());
+			if (mAssist != null) {
+				mAssist.pause(editor);
+			}
+		}
+		editor.commit();
+		super.onPause();
+	}
+	protected void onResume(){
+		super.onResume();
+		SharedPreferences prefs = this.getPreferences(0);
+		mTaxiPos = new GeoPoint(prefs.getInt(DriverConst.LOC_LAT, 0),
+				prefs.getInt(DriverConst.LOC_LON, 0));
+		if (mAssist != null) {
+			mAssist.resume(prefs);
+		}
+		taxiMove(mTaxiPos);
+	}
+	public void onDestroy(){
+		SharedPreferences.Editor editor = this.getPreferences(0).edit();
+		mAssist.destroy(editor);
+		super.onDestroy();
+	}
 	private void initViews() {
 		// UI elements initialization
 		mView = (TaxiMapView) findViewById(R.id.mapView);
@@ -90,6 +126,9 @@ public class DriverActivity extends MapActivity {
 		tvStatus = (TextView) findViewById(R.id.status);
 		btnBack = (Button) findViewById(R.id.backtocar);
 		tvMsg.setVisibility(View.GONE);
+		mGestureView = (GestureView)findViewById(R.id.gesture);
+		mGestureView.setHandler(this);
+		disableGesture();
 		btnLoginout.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				if (btnLoginout.getText().equals("login")) {
@@ -134,11 +173,11 @@ public class DriverActivity extends MapActivity {
 	public void onActivityResult(int requestCode, int resultCode, Intent data) {
 		mAssist.processActivityResult(requestCode, resultCode);
 		if (DriverConst.EXE_LOGIN == requestCode) {
-			if (Login.LOGIN_SUCCEED == resultCode) {
+			if (DriverConst.LOGIN_SUCCEED == resultCode) {
 				setPriStatus(DriverConst.LOGIN);
 				try {
 					JSONObject jsonSelf = new JSONObject(
-							data.getStringExtra(Login.RET_OBJ));
+							data.getStringExtra(DriverConst.RET_OBJ));
 					mDrvInfo.setPhoneNumber(jsonSelf.getString("phone_number"));
 					mDrvInfo.setNickName(jsonSelf.getString("nickname"));
 					int state = jsonSelf.optInt("state", -1);
@@ -172,7 +211,7 @@ public class DriverActivity extends MapActivity {
 						MapOverLay o = new PassengerOverlay(mView, p,
 								BitmapFactory.decodeResource(
 										this.getResources(),
-										R.drawable.passenger), mSelPassenger,
+										R.drawable.passengermale), mSelPassenger,
 								this);
 						mView.getOverlays().clear();
 						mView.getOverlays().add(o);
@@ -185,7 +224,7 @@ public class DriverActivity extends MapActivity {
 				}
 			}
 
-			String msg = data.getStringExtra(Login.RET_MSG);
+			String msg = data.getStringExtra(DriverConst.RET_MSG);
 			if (msg != null) {
 				if (msg.length() > 0) {
 					Toast.makeText(mView.getContext(), msg, Toast.LENGTH_LONG)
@@ -193,7 +232,7 @@ public class DriverActivity extends MapActivity {
 				}
 			}
 		} else if (DriverConst.EXE_ACCOUNT == requestCode) {
-			String msg = data.getStringExtra(Login.RET_MSG);
+			String msg = data.getStringExtra(DriverConst.RET_MSG);
 			if (msg != null) {
 				if (msg.length() > 0) {
 					Toast.makeText(mView.getContext(), msg, Toast.LENGTH_LONG)
@@ -307,7 +346,7 @@ public class DriverActivity extends MapActivity {
 		GeoPoint p = new GeoPoint(lat.intValue(), lon.intValue());
 		MapOverLay o = new PassengerOverlay(mView, p,
 				BitmapFactory.decodeResource(this.getResources(),
-						R.drawable.passenger), info, this);
+						R.drawable.passengermale), info, this);
 		mView.getOverlays().add(o);
 		mPsgOverlayMap.put(info, o);
 		mView.invalidate();
@@ -327,7 +366,7 @@ public class DriverActivity extends MapActivity {
 			GeoPoint p = new GeoPoint(lat.intValue(), lon.intValue());
 			MapOverLay fresh = new PassengerOverlay(mView, p,
 					BitmapFactory.decodeResource(this.getResources(),
-							R.drawable.passenger), info, this);
+							R.drawable.passengermale), info, this);
 			mView.getOverlays().add(fresh);
 			mView.invalidate();
 			mPsgOverlayMap.put(info, fresh);
@@ -433,9 +472,59 @@ public class DriverActivity extends MapActivity {
 
 	public void clearOverlay() {
 		mView.getOverlays().clear();
+		mPsgOverlayMap.clear();
 	}
 
 	public void setCurPsger(PassengerInfo psg) {
 		mSelPassenger = psg;
+	}
+	@Override
+	public boolean processGesture(String name,RectF rect) {
+		MapOverLay selOverlay = null;
+		PassengerInfo psg = null;
+		List<Overlay> lstOverlay = mView.getOverlays();
+		Set<PassengerInfo> o = mPsgOverlayMap.keySet();
+		Object[] oa = o.toArray();
+		for(int i=0;i<oa.length;i++){
+			MapOverLay mol = (MapOverLay)mPsgOverlayMap.get((PassengerInfo)oa[i]);
+			if(mol.isInRect(rect) && mPsgOverlayMap.containsValue(mol)){
+				selOverlay = mol;
+				psg = (PassengerInfo)oa[i];
+				break;
+			}
+		}
+		if(selOverlay == null){
+			return false;
+		}
+		if(name.equals(DriverConst.SELECT)){
+		}else if(name.equals(DriverConst.REFUSE) && getStatus() == DriverConst.PREPROCESS){
+			mPsgOverlayMap.remove(psg);
+			mView.getOverlays().remove(selOverlay);			
+		}else if(name.equals(DriverConst.ACCEPT) && getStatus() == DriverConst.PREPROCESS){
+			Intent intent = new Intent(getBaseContext(),
+					HireCall.class);
+			Bundle bundle = new Bundle();
+			bundle.putString(DriverConst.CALLER,
+					psg.toString());
+			intent.putExtras(bundle);
+			startActivityForResult(intent,
+					DriverConst.EXE_CALL_RESPONSE);
+			setCurPsger(psg);
+			setStatus(DriverConst.PRERUNNING);			
+		}
+		return false;
+	}
+	public void onSaveInstanceState(Bundle bundle){
+		super.onSaveInstanceState(bundle);
+	}
+	public void onLongClick(){
+		
+	}
+	public void enableGesture(Point pt) {
+		mGestureView.enableGesture(pt);
+		
+	}
+	public void disableGesture(){
+		mGestureView.disableGesture();
 	}
 }

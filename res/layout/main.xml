@@ -3,11 +3,16 @@
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	android:layout_height="fill_parent" android:orientation="vertical">
 
-	<com.chaos.driver.TaxiMapView
-		android:id="@+id/mapView" android:layout_width="fill_parent"
-		android:layout_height="fill_parent" android:enabled="true"
-		android:clickable="true" android:apiKey="0q-wUWsI1XQdSkF00o7VZYCT2a5aeQo77SbhxwA" />
-
+	<com.chaos.driver.TaxiMapView android:id="@+id/mapView"
+	android:layout_width="fill_parent" android:layout_height="fill_parent"
+	android:enabled="true" android:clickable="true"
+	android:apiKey="0q-wUWsI1XQdSkF00o7VZYCT2a5aeQo77SbhxwA" />
+	<com.chaos.driver.GestureView
+		android:id="@+id/gesture" android:layout_width="fill_parent"
+		android:layout_height="fill_parent" android:fadeEnabled="true"
+		android:fadeOffset="1000" android:fadeDuration="500"
+		android:gestureColor="#7f0000ff" android:uncertainGestureColor="#7f00ff00"
+		android:gestureStrokeType="single" />
 	<LinearLayout android:orientation="horizontal"
 		android:layout_width="fill_parent" 
 		android:layout_height="50dip">

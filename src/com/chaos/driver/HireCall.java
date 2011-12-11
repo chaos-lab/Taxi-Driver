@@ -1,5 +1,7 @@
 package com.chaos.driver;
 
+import com.chaos.driver.util.DriverConst;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
@@ -34,6 +36,10 @@ public class HireCall extends Activity{
 				finish();
 			}
 		});
+	}
+	public void onBackPressed(){
+		setResult(DriverConst.USER_CANCELLED);
+		finish();
 	}
 }
 

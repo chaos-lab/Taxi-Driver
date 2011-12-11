@@ -9,8 +9,9 @@ import org.json.JSONObject;
 import android.location.Location;
 import android.util.Log;
 
-import com.chaos.driver.Util.HttpConnectUtil;
-import com.chaos.driver.Util.HttpConnectUtil.ResonpseData;
+import com.chaos.driver.util.DriverConst;
+import com.chaos.driver.util.HttpConnectUtil;
+import com.chaos.driver.util.HttpConnectUtil.ResonpseData;
 
 public class PassengerSrcProvider implements Executive{
 
@@ -34,9 +35,9 @@ public class PassengerSrcProvider implements Executive{
 	public void execute(){
 		String url = HttpConnectUtil.WEB + "driver/refresh";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
-		if (HttpConnectUtil.get(url, null, rd)) {
+		//if (HttpConnectUtil.get(url, null, rd)) {
 		// a dummy one
-		//if (genDummyUser(rd)) {
+		if (genDummyUser(rd)) {
 			int retCode = HttpConnectUtil.parseLoginResponse(rd.strResponse);
 			if(retCode == 1){
 				synchronized (DriverConst.SyncObj) {

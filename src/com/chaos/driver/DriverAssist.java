@@ -6,12 +6,14 @@ import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.chaos.driver.Util.CellPositioning;
-import com.chaos.driver.Util.HttpConnectUtil;
+import com.chaos.driver.util.CellPositioning;
+import com.chaos.driver.util.DriverConst;
+import com.chaos.driver.util.HttpConnectUtil;
 import com.google.android.maps.GeoPoint;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
@@ -250,7 +252,7 @@ public class DriverAssist implements Executive {
 
 	public void processActivityResult(int requestCode, int resultCode) {
 		if (DriverConst.EXE_LOGIN == requestCode) {
-			if (Login.LOGIN_SUCCEED == resultCode) {
+			if (DriverConst.LOGIN_SUCCEED == resultCode) {
 				mHeart.start();
 			}
 		}
@@ -276,5 +278,23 @@ public class DriverAssist implements Executive {
 			}
 		}
 		
+	}
+
+	public void pause(SharedPreferences.Editor editor) {
+		editor.putInt(DriverConst.LOC_LAT,mTaxiPos.getLatitudeE6());
+		editor.putInt(DriverConst.LOC_LON,mTaxiPos.getLongitudeE6());
+		mHeart.stop();		
+	}
+
+	public void resume(SharedPreferences prefs) {
+		mTaxiPos = new GeoPoint(prefs.getInt(DriverConst.LOC_LAT, 0),
+				prefs.getInt(DriverConst.LOC_LON, 0));	
+		if (DriverConst.LOGIN == mDriver.getPriStatus()) {
+			mHeart.start();
+		}
+	}
+
+	public void destroy(SharedPreferences.Editor editor) {
+		mHeart.stop();		
 	}
 }

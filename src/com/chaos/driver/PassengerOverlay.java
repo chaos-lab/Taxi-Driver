@@ -6,6 +6,7 @@ import android.graphics.Point;
 import android.os.Bundle;
 import android.view.MotionEvent;
 
+import com.chaos.driver.util.DriverConst;
 import com.google.android.maps.GeoPoint;
 import com.google.android.maps.MapView;
 

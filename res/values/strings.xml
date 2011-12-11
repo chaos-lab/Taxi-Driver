@@ -3,5 +3,8 @@
 
     <string name="hello">Hello World!</string>
     <string name="app_name">Driver</string>
-
+	<string name="record_content_menu_title">detail</string>
+	<string name="record_detail">detail</string>
+	<string name="record_remove">remove</string>
+	<string name="record_evaluate">evaluate</string>
 </resources>
