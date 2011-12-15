@@ -5,6 +5,8 @@ public class DriverInfo {
 	private String mPhoneNumber;
 	private String mCarNumber;
 	private boolean mbFree;
+	double mScore; //average score
+	int mTotal;	//total service count
 
 	public DriverInfo(String nickName, String phoneNUm, String carNum) {
 		mNickName = nickName;
@@ -50,5 +52,18 @@ public class DriverInfo {
 
 	public boolean isFree() {
 		return mbFree;
+	}
+
+	public void setScore(double s) {
+		mScore = s;
+	}
+	public double getScore() {
+		return mScore;
+	}
+	public void setTotal(int t) {
+		mTotal = t;
+	}
+	public int setTotal() {
+		return mTotal;
 	}
 }

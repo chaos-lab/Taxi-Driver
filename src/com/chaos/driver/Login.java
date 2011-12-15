@@ -113,6 +113,8 @@ public class Login extends Activity {
 					String msg = jsonObj.getString("message");
 					intent.putExtra(DriverConst.RET_MSG, msg);
 					intent.putExtra(DriverConst.RET_OBJ,jsonObj.getJSONObject("self").toString());
+					intent.putExtra(DriverConst.LOGIN_USR, phoneView.getText().toString());
+					intent.putExtra(DriverConst.LOGIN_PSW, pswView.getText().toString());
 				}
 				return type.ret_code[0];
 			} else {

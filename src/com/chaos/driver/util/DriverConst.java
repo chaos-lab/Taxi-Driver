@@ -59,4 +59,6 @@ public class DriverConst {
 	public final static String LOGIN_SITE = "driver/signin";
 	public final static String RET_MSG = "ret_msg";
 	public final static String RET_OBJ = "ret_obj";
+	public final static String LOGIN_USR = "login_usr";
+	public final static String LOGIN_PSW = "login_psw";
 }

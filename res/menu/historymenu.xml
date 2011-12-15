@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/detail"
+        android:checkable="false"
+        android:checked="false"
+        android:enabled="true"
+        android:menuCategory="alternative"
+        android:title="detail"
+        android:titleCondensed="detail"
+        android:visible="true"></item>
+
+    <item
+        android:id="@+id/delete"
+        android:enabled="true"
+        android:menuCategory="container"
+        android:title="delete"
+        android:titleCondensed="delete"
+        android:visible="true"></item>
+
+    <item
+        android:id="@+id/evaluate"
+        android:enabled="true"
+        android:menuCategory="secondary"
+        android:title="evaluate"
+        android:titleCondensed="evaluate"
+        android:visible="true"></item>
+</menu>

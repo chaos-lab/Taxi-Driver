@@ -49,7 +49,7 @@ public class TaxiHistorySqlHelper extends SQLiteOpenHelper {
 				GeoPoint locationPoint, GeoPoint destinationPoint,
 				int driverEvaluation, int passengerEvaluation,
 				String driverComment, String passengerComment) {
-			if (mGeocoder != null) {
+			if (mGeocoder == null) {
 				mGeocoder = new Geocoder(context);
 			}
 			mId = id;
@@ -79,7 +79,13 @@ public class TaxiHistorySqlHelper extends SQLiteOpenHelper {
 			mDriverComment = driverComment;
 			mPassengerComment = passengerComment;
 		}
-
+		public String toString(){
+			return "\nId:" + mId + "\nmCarNumber:" + mCarNumber +
+			"\nmNickName:" + mNickName + "\nmPhoneNumber:" + mPhoneNumber +
+			"\nmLocation:"+mLocation+"\nmDestination:"+mDestination+
+			"\nmDriverEvaluation:"+mDriverEvaluation+"\nmPassengerEvaluation:"+mPassengerEvaluation+
+			"\nmDriverComment:"+mDriverComment+"\nmPassengerComment:"+mPassengerComment;
+		}
 		protected String queryLocationName(GeoPoint point) {
 			if (mGeocoder == null) {
 				Log.e(TAG, "mGeocoder is still null!");
@@ -200,9 +206,9 @@ public class TaxiHistorySqlHelper extends SQLiteOpenHelper {
 	public void onCreate(SQLiteDatabase db) {
 		db.execSQL("create table if not exists " + TABLE_NAME + "(" + ID
 				+ " integer primary key DESC, " + CAR_NUMBER
-				+ " varchar not null, " + NICKNAME + " varchar not null, "
-				+ PHONE_NUMBER + " varchar not null, " + LOCATION
-				+ " text not null, " + DESTINATION + " text, "
+				+ " varchar , " + NICKNAME + " varchar , "
+				+ PHONE_NUMBER + " varchar , " + LOCATION
+				+ " text , " + DESTINATION + " text, "
 				+ DRIVER_EVALUATION + " integer, " + PASSENGER_EVALUATION
 				+ " integer, " + DRIVER_COMMENT + " text, " + PASSENGER_COMMENT
 				+ " text)");
@@ -248,7 +254,7 @@ public class TaxiHistorySqlHelper extends SQLiteOpenHelper {
 
 	public HistoryItem[] batchQueryHistory(int historyId, int count) {
 		Log.d(TAG, "batchQueryHistory: " + historyId);
-		String sql = "SELECT * FROM " + TABLE_NAME + " where " + ID + "="
+		String sql = "SELECT * FROM " + TABLE_NAME + " where " + ID + "<"
 				+ historyId;
 		Cursor cursor = mSQLiteDatabase.rawQuery(sql, null);
 		return HistoryItem.parseItemFromCursor(cursor, count);

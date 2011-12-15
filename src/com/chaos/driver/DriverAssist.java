@@ -27,7 +27,7 @@ public class DriverAssist implements Executive {
 	private Handler mPsgHandler;
 	private GeoPoint mTaxiPos;
 	private PassengerSrcProvider mPsgProvider;
-	//focused passengers
+	//focused passengers,need to synchronize
 	private List<PassengerInfo> mLstPsgInfo;	
 	private Heart mHeart;
 	public DriverAssist(DriverActivity d){
@@ -279,7 +279,110 @@ public class DriverAssist implements Executive {
 		}
 		
 	}
-
+	public void comment(int id,int score,String strComment){
+		String url = HttpConnectUtil.WEB + "service/evaluate";
+		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
+		JSONObject jsonObj = new JSONObject();
+		try {
+			jsonObj.put("id", id);
+			jsonObj.put("score", score);
+			if(strComment.length() > 0){
+				jsonObj.put("comment", strComment);
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+			Log.d("comment", "comment failed!");
+		}
+		if (HttpConnectUtil.post(url, jsonObj, rd)) {
+			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
+				Log.d("comment", "failed to connect to server!");
+			}
+		}
+	}
+	/*****************************************************************/
+	/*
+	 * get the evaluation information for the driver
+	 */
+	public void getDrvEvlInfo(DriverInfo drv){
+		String result = getEvalFromTime(System.currentTimeMillis(),drv.getPhoneNumber(),1);
+		if (result != null && result.length() > 0) {
+			try {
+				JSONObject jsonObj = new JSONObject(result);
+				drv.setScore(jsonObj.getDouble("average_score"));
+				drv.setTotal(jsonObj.getInt("total_service_count"));
+			} catch (JSONException e) {
+				e.printStackTrace();
+				Log.d("evaluation", "get evaluation failed!");
+			}
+		}
+	}
+	//get evaluations from ids
+	public String getEvalFromIds(int [] ids){
+		String url = HttpConnectUtil.WEB + "service/evaluations";
+		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
+		JSONObject jsonObj = new JSONObject();
+		try {
+			jsonObj.put("ids", ids.toString());
+		} catch (JSONException e) {
+			e.printStackTrace();
+			Log.d("get evaluations", "get evaluations failed!");
+			return null;
+		}
+		if (HttpConnectUtil.get(url, jsonObj, rd)) {
+			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
+				Log.d("get evaluations", "failed to connect to server!");
+			}else{
+				return rd.strResponse;
+			}
+		}
+		return null;
+	}
+	//get evaluation from time
+	public String getEvalFromTime(long time,String phoneNum,int count){
+		String url = HttpConnectUtil.WEB + "service/user/evaluations";
+		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
+		JSONObject jsonObj = new JSONObject();
+		try {
+			jsonObj.put("phone_number", phoneNum);
+			jsonObj.put("start_time", time);
+			jsonObj.put("count", count);
+		} catch (JSONException e) {
+			e.printStackTrace();
+			Log.d("get evaluations", "get evaluations failed!");
+			return null;
+		}
+		if (HttpConnectUtil.get(url, jsonObj, rd)) {
+			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
+				Log.d("get evaluations", "failed to connect to server!");
+			}else{
+				return rd.strResponse;
+			}
+		}
+		return null;
+	}
+	//get histories
+	public String getHistory(long start,long end,int count){
+		String url = HttpConnectUtil.WEB + "service/history";
+		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
+		JSONObject jsonObj = new JSONObject();
+		try {
+			jsonObj.put("start_time", start);
+			jsonObj.put("end_time", end);
+			jsonObj.put("count", count);
+		} catch (JSONException e) {
+			e.printStackTrace();
+			Log.d("get evaluations", "get evaluations failed!");
+			return null;
+		}
+		if (HttpConnectUtil.get(url, jsonObj, rd)) {
+			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
+				Log.d("get evaluations", "failed to connect to server!");
+			}else{
+				return rd.strResponse;
+			}
+		}
+		return null;
+	}
 	public void pause(SharedPreferences.Editor editor) {
 		editor.putInt(DriverConst.LOC_LAT,mTaxiPos.getLatitudeE6());
 		editor.putInt(DriverConst.LOC_LON,mTaxiPos.getLongitudeE6());
@@ -294,7 +397,37 @@ public class DriverAssist implements Executive {
 		}
 	}
 
-	public void destroy(SharedPreferences.Editor editor) {
+	public void destroy() {
 		mHeart.stop();		
+	}
+	public  boolean registerDirectly(String user,String psw,Bundle bundle) {
+		String url = HttpConnectUtil.WEB + DriverConst.LOGIN_SITE;
+		try {
+			JSONObject jsonObj = new JSONObject();
+				jsonObj.put("phone_number", user);
+				jsonObj.put("password", psw);
+			HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
+			if (HttpConnectUtil.post(url, jsonObj, rd)) {
+				if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
+					Log.d("get evaluations", "failed to connect to server!");
+					bundle.putString(DriverConst.RET_MSG, "login failed! \ndetail: \n"+rd.strResponse);
+					return false;
+				}else{
+					jsonObj = new JSONObject(rd.strResponse);
+					bundle.putString(DriverConst.RET_MSG, jsonObj.getString("message"));
+					bundle.putString(DriverConst.RET_OBJ,jsonObj.getJSONObject("self").toString());
+					return true;
+				}
+			}else{
+				Log.e("login",rd.strResponse);
+				return false;
+			}
+
+		} catch (JSONException jsonException) {
+			jsonException.printStackTrace();
+			bundle.putString(DriverConst.RET_MSG, "login failed! ");
+			return false;
+		}
+
 	}
 }

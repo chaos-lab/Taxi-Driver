@@ -20,11 +20,15 @@
             </intent-filter>
         </activity>
         <activity 
-            android:name="Login" >
+            android:name=".Login" >
         </activity>
         <activity 
-            android:name="HireCall" >
+            android:name=".HireCall" >
         </activity>
+        <activity 
+            android:name="com.chaos.driver.record.RecordPage">
+        </activity>
+
     </application>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
