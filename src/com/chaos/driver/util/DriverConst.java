@@ -61,4 +61,5 @@ public class DriverConst {
 	public final static String RET_OBJ = "ret_obj";
 	public final static String LOGIN_USR = "login_usr";
 	public final static String LOGIN_PSW = "login_psw";
+	public final static String SER_KEY="ser_key";
 }

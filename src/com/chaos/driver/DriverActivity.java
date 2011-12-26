@@ -13,6 +13,7 @@ import com.chaos.driver.util.HttpConnectUtil;
 import com.google.android.maps.*;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -27,6 +28,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -54,10 +56,10 @@ public class DriverActivity extends MapActivity implements GestureHandler{
 	private Overlay mTaxiOverlay = null;
 	private GeoPoint mTaxiPos;
 
-	private DriverAssist mAssist;
+	static private DriverAssist mAssist;
 	private HashMap<PassengerInfo, Overlay> mPsgOverlayMap;
 	private GestureView mGestureView;
-	private CommentView mCommentView;
+	static private CommentView mCommentView;
 	// }
 
 	String mUsrName;
@@ -346,7 +348,7 @@ public class DriverActivity extends MapActivity implements GestureHandler{
 			updateUI();
 		} else if (mAssist.declareFree(mSelPassenger.getID())) {
 			setStatus(DriverConst.IDLE);
-			showEvaluate();
+			showEvaluate(this,mSelPassenger.getID());
 			updateUI();
 			mSelPassenger = null;
 			clearOverlay();
@@ -594,23 +596,28 @@ public class DriverActivity extends MapActivity implements GestureHandler{
 		switch(menuItem.getItemId()){
 		case R.id.history:
 			Intent i = new Intent(DriverActivity.this,com.chaos.driver.record.RecordPage.class);
+			Bundle bundle = new Bundle();
+			bundle.putParcelable(DriverConst.SER_KEY, mAssist);
+			i.putExtras(bundle);
 			this.startActivity(i);
 			break;
 		}
 		return true;
 	}
-	public void showEvaluate(){
+	public static void showEvaluate(Context context,long id){
+		ViewGroup vg = (ViewGroup)mCommentView.getParent();
+		if(vg != null){
+			vg.removeView(mCommentView);
+		}
 		mCommentView.reset();
-		AlertDialog dlg =  new AlertDialog.Builder(this).setTitle("evaluation")
+		mAssist.setCommentId(id);
+		AlertDialog dlg =  new AlertDialog.Builder(context).setTitle("evaluation")
 		.setView(mCommentView).setPositiveButton("ok", new DialogInterface.OnClickListener() {
 			
 			@Override
 					public void onClick(DialogInterface dialog, int which) {
-						if (mSelPassenger != null) {
-							mAssist.comment(mSelPassenger.getID(),
-									mCommentView.getScore(),
-									mCommentView.getComments());
-						}
+						mAssist.comment( mCommentView.getScore(),
+								mCommentView.getComments());
 			}
 		}).setNegativeButton("cancel",null).create();
 		dlg.show();

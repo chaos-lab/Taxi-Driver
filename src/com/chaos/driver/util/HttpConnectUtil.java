@@ -126,8 +126,8 @@ public class HttpConnectUtil {
 	public static boolean get(String url, JSONObject data, ResonpseData rd){
 		String completeUri = url;
 		if(data != null){
-			url +=  "?json_data=" + URLEncoder.encode(data.toString());
-		}
+			completeUri =  url + "?json_data=" + URLEncoder.encode(data.toString());
+		}			
 		HttpGet get = new HttpGet(completeUri);
 		try{
 			HttpResponse response;
@@ -178,5 +178,4 @@ public class HttpConnectUtil {
 			return -1;
 		}
 	}
-
 }

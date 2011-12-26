@@ -30,13 +30,13 @@ public final class R {
         public static final int caller_info=0x7f080006;
         public static final int car_label=0x7f08000d;
         public static final int car_number=0x7f08000e;
-        public static final int delete=0x7f080019;
+        public static final int delete=0x7f08001b;
         public static final int detail=0x7f080018;
         public static final int et_comments=0x7f080005;
-        public static final int evaluate=0x7f08001a;
+        public static final int evaluate=0x7f080019;
         public static final int free_declare=0x7f080016;
         public static final int gesture=0x7f080011;
-        public static final int history=0x7f08001b;
+        public static final int history=0x7f08001c;
         public static final int login=0x7f080013;
         public static final int mapView=0x7f080010;
         public static final int message=0x7f080015;
@@ -46,6 +46,7 @@ public final class R {
         public static final int psw=0x7f08000a;
         public static final int refuse=0x7f080007;
         public static final int register=0x7f080012;
+        public static final int retrieve=0x7f08001a;
         public static final int star1=0x7f080000;
         public static final int star2=0x7f080001;
         public static final int star3=0x7f080002;
@@ -56,9 +57,10 @@ public final class R {
     }
     public static final class layout {
         public static final int evaluate=0x7f030000;
-        public static final int hire_call=0x7f030001;
-        public static final int login=0x7f030002;
-        public static final int main=0x7f030003;
+        public static final int fetch_eval=0x7f030001;
+        public static final int hire_call=0x7f030002;
+        public static final int login=0x7f030003;
+        public static final int main=0x7f030004;
     }
     public static final class menu {
         public static final int historymenu=0x7f070000;

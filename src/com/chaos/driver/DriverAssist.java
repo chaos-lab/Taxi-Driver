@@ -1,11 +1,15 @@
 package com.chaos.driver;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.chaos.driver.record.RecordDataProvider;
 import com.chaos.driver.util.CellPositioning;
 import com.chaos.driver.util.DriverConst;
 import com.chaos.driver.util.HttpConnectUtil;
@@ -18,19 +22,23 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
-public class DriverAssist implements Executive {
+public class DriverAssist implements Executive, RecordDataProvider, Parcelable {
 	private DriverActivity mDriver;
 	private Handler mHandler;
 	private Handler mPsgHandler;
 	private GeoPoint mTaxiPos;
 	private PassengerSrcProvider mPsgProvider;
-	//focused passengers,need to synchronize
-	private List<PassengerInfo> mLstPsgInfo;	
+	// focused passengers,need to synchronize
+	private List<PassengerInfo> mLstPsgInfo;
 	private Heart mHeart;
-	public DriverAssist(DriverActivity d){
+	private long mCommentId;
+
+	public DriverAssist(DriverActivity d) {
 		mDriver = d;
 		mHandler = new Handler() {
 			public void handleMessage(Message msg) {
@@ -59,22 +67,22 @@ public class DriverAssist implements Executive {
 		};
 		mLstPsgInfo = new LinkedList<PassengerInfo>();
 
-		mPsgHandler = new Handler(){
+		mPsgHandler = new Handler() {
 			public void handleMessage(Message msg) {
-				//only authorized user can get these message
+				// only authorized user can get these message
 				if (mDriver.getPriStatus() == DriverConst.LOGIN) {
-					//synchronize
+					// synchronize
 					synchronized (DriverConst.SyncObj) {
-						//get passenger update information from provider
+						// get passenger update information from provider
 						List<PassengerInfo> lstInfo = new LinkedList<PassengerInfo>();
 						int type = mPsgProvider.getPassengerResource(lstInfo);
-						if(-1 == type){
+						if (-1 == type) {
 							mHeart.stop();
 							mDriver.setStatus(DriverConst.IDLE);
 							mDriver.setPriStatus(DriverConst.VISITOR);
-						}else{
+						} else {
 							int iSize = lstInfo.size();
-							//if some fresh one comes
+							// if some fresh one comes
 							if ((type & DriverConst.PSG_MASK_APPEND) != 0) {
 								if (mDriver.getStatus() == DriverConst.IDLE) {
 									mDriver.clearOverlay();
@@ -89,7 +97,7 @@ public class DriverAssist implements Executive {
 								}
 							}
 							if ((type & DriverConst.PSG_MASK_UPDATE) != 0) {
-								switch(mDriver.getStatus()){
+								switch (mDriver.getStatus()) {
 								case DriverConst.IDLE:
 									mDriver.clearOverlay();
 									if (mTaxiPos != null) {
@@ -108,7 +116,8 @@ public class DriverAssist implements Executive {
 									for (int p = 0; p < iSize; p++) {
 										PassengerInfo psg = lstInfo.get(p);
 										for (int q = 0; q < mySize; q++) {
-											PassengerInfo myPsg = lstInfo.get(p);
+											PassengerInfo myPsg = lstInfo
+													.get(p);
 											if (myPsg.getID() == psg.getID()) {
 												mDriver.updatePassenger(psg);
 											}
@@ -116,7 +125,7 @@ public class DriverAssist implements Executive {
 									}
 									break;
 								}
-								
+
 							}
 							if ((type & DriverConst.PSG_MASK_CANCEL) != 0) {
 								int mySize = mLstPsgInfo.size();
@@ -130,16 +139,16 @@ public class DriverAssist implements Executive {
 											continue;
 										}
 									}
-									if(needRemove){
+									if (needRemove) {
 										mLstPsgInfo.remove(myPsg);
 										mDriver.cancelTaxi(myPsg);
-										if(mLstPsgInfo.size() == 0){
+										if (mLstPsgInfo.size() == 0) {
 											mDriver.setStatus(DriverConst.IDLE);
 										}
 									}
 								}
 							}
-						}						
+						}
 					}
 				}
 			}
@@ -149,15 +158,20 @@ public class DriverAssist implements Executive {
 		mHeart.addAction(this);
 		mHeart.addAction(mPsgProvider);
 	}
-		
-	public void login(){
+
+	public DriverAssist() {
+
+	}
+
+	public void login() {
 		Intent intent = new Intent(mDriver.getBaseContext(), Login.class);
 		Bundle bundle = new Bundle();
 		bundle.putInt(DriverConst.EXE_CODE, DriverConst.EXE_LOGIN);
 		intent.putExtras(bundle);
 		mDriver.startActivityForResult(intent, DriverConst.EXE_LOGIN);
 	}
-	public boolean logout(){
+
+	public boolean logout() {
 		String url = HttpConnectUtil.WEB + "driver/signout";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
 		JSONObject jsonObj = new JSONObject();
@@ -171,6 +185,7 @@ public class DriverAssist implements Executive {
 		}
 		return false;
 	}
+
 	// create an account by offer your information
 	public void account() {
 		Intent intent = new Intent(mDriver.getBaseContext(), Login.class);
@@ -178,7 +193,8 @@ public class DriverAssist implements Executive {
 		bundle.putInt(DriverConst.EXE_CODE, DriverConst.EXE_ACCOUNT);
 		intent.putExtras(bundle);
 		mDriver.startActivityForResult(intent, DriverConst.EXE_ACCOUNT);
-	} 
+	}
+
 	// declare a taxi to be free,subsequently,one can order this taxi by a
 	// "CALL_TAXI" request
 	public boolean declareFree(int id) {
@@ -200,12 +216,15 @@ public class DriverAssist implements Executive {
 		}
 		return true;
 	}
-	public void execute(){
+
+	public void execute() {
 		updateLocation();
 		// update passenger
-		Message msg = mPsgHandler.obtainMessage();;
+		Message msg = mPsgHandler.obtainMessage();
+		;
 		mPsgHandler.sendMessage(msg);
 	}
+
 	// calculate one`s location and push this information to taxi engaged person
 	private boolean updateLocation() {
 		Location loc = null;
@@ -213,8 +232,8 @@ public class DriverAssist implements Executive {
 		TelephonyManager myPhone = (TelephonyManager) mDriver.getBaseContext()
 				.getSystemService(Context.TELEPHONY_SERVICE);
 		if (myPhone.getPhoneType() == TelephonyManager.PHONE_TYPE_CDMA) {
-			loc = CellPositioning.getCdmaLocation(myPhone, mDriver.getBaseContext(),
-					strRet);
+			loc = CellPositioning.getCdmaLocation(myPhone,
+					mDriver.getBaseContext(), strRet);
 		} else if (myPhone.getPhoneType() == TelephonyManager.PHONE_TYPE_GSM) {
 			loc = CellPositioning.getGsmLocation(myPhone, strRet);
 		}
@@ -233,6 +252,7 @@ public class DriverAssist implements Executive {
 		}
 		return false;
 	}
+
 	public void updateStatus(int status) {
 		String url = HttpConnectUtil.WEB + "driver/taxi/update";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
@@ -257,36 +277,40 @@ public class DriverAssist implements Executive {
 			}
 		}
 	}
-	
-	private double CalcDistance(GeoPoint from, GeoPoint to)
-	{
-	    double rad = 6371*1000; //Earth radius in m
-	    //Convert to radians
-	    double p1X = from.getLongitudeE6() / 180.0 /DriverConst.LOC2GEO* Math.PI;
-	    double p1Y = from.getLatitudeE6() / 180.0/DriverConst.LOC2GEO * Math.PI;
-	    double p2X = to.getLongitudeE6() / 180.0/DriverConst.LOC2GEO * Math.PI;
-	    double p2Y = to.getLatitudeE6() / 180.0/DriverConst.LOC2GEO * Math.PI;
-	    return Math.abs(Math.acos(Math.sin(p1Y) * Math.sin(p2Y) +
-	        Math.cos(p1Y) * Math.cos(p2Y) * Math.cos(p2X - p1X)) * rad);
+
+	private double CalcDistance(GeoPoint from, GeoPoint to) {
+		double rad = 6371 * 1000; // Earth radius in m
+		// Convert to radians
+		double p1X = from.getLongitudeE6() / 180.0 / DriverConst.LOC2GEO
+				* Math.PI;
+		double p1Y = from.getLatitudeE6() / 180.0 / DriverConst.LOC2GEO
+				* Math.PI;
+		double p2X = to.getLongitudeE6() / 180.0 / DriverConst.LOC2GEO
+				* Math.PI;
+		double p2Y = to.getLatitudeE6() / 180.0 / DriverConst.LOC2GEO * Math.PI;
+		return Math.abs(Math.acos(Math.sin(p1Y) * Math.sin(p2Y) + Math.cos(p1Y)
+				* Math.cos(p2Y) * Math.cos(p2X - p1X))
+				* rad);
 	}
 
 	public void updatePassenger(int state, PassengerInfo psg) {
-		if(state == DriverConst.RUNNING){
-			synchronized(DriverConst.SyncObj){
+		if (state == DriverConst.RUNNING) {
+			synchronized (DriverConst.SyncObj) {
 				mLstPsgInfo.clear();
 				mLstPsgInfo.add(psg);
 			}
 		}
-		
+
 	}
-	public void comment(int id,int score,String strComment){
+
+	public void comment( int score, String strComment) {
 		String url = HttpConnectUtil.WEB + "service/evaluate";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
 		JSONObject jsonObj = new JSONObject();
 		try {
-			jsonObj.put("id", id);
+			jsonObj.put("id", mCommentId);
 			jsonObj.put("score", score);
-			if(strComment.length() > 0){
+			if (strComment != null && strComment.length() > 0) {
 				jsonObj.put("comment", strComment);
 			}
 		} catch (JSONException e) {
@@ -299,12 +323,14 @@ public class DriverAssist implements Executive {
 			}
 		}
 	}
+
 	/*****************************************************************/
 	/*
 	 * get the evaluation information for the driver
 	 */
-	public void getDrvEvlInfo(DriverInfo drv){
-		String result = getEvalFromTime(System.currentTimeMillis(),drv.getPhoneNumber(),1);
+	public void getDrvEvlInfo(DriverInfo drv) {
+		String result = getEvalFromTime(System.currentTimeMillis(),
+				drv.getPhoneNumber(), 1);
 		if (result != null && result.length() > 0) {
 			try {
 				JSONObject jsonObj = new JSONObject(result);
@@ -316,29 +342,36 @@ public class DriverAssist implements Executive {
 			}
 		}
 	}
-	//get evaluations from ids
-	public String getEvalFromIds(int [] ids){
+
+	// get evaluations from ids
+	public String getEvalFromIds(long[] ids) {
 		String url = HttpConnectUtil.WEB + "service/evaluations";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
 		JSONObject jsonObj = new JSONObject();
 		try {
-			jsonObj.put("ids", ids.toString());
+			ArrayList<Long> c = new ArrayList<Long>();
+			for(int i=0;i<ids.length;i++){
+				c.add(new Long(ids[i]));
+			}
+			JSONArray ja = new JSONArray(c);
+			jsonObj.put("ids", ja);
+			if (HttpConnectUtil.get(url, jsonObj, rd)) {
+				if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
+					Log.d("get evaluations", "failed to connect to server!");
+				} else {
+					return rd.strResponse;
+				}
+			}
 		} catch (JSONException e) {
 			e.printStackTrace();
 			Log.d("get evaluations", "get evaluations failed!");
 			return null;
 		}
-		if (HttpConnectUtil.get(url, jsonObj, rd)) {
-			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
-				Log.d("get evaluations", "failed to connect to server!");
-			}else{
-				return rd.strResponse;
-			}
-		}
 		return null;
 	}
-	//get evaluation from time
-	public String getEvalFromTime(long time,String phoneNum,int count){
+
+	// get evaluation from time
+	public String getEvalFromTime(long time, String phoneNum, int count) {
 		String url = HttpConnectUtil.WEB + "service/user/evaluations";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
 		JSONObject jsonObj = new JSONObject();
@@ -354,20 +387,24 @@ public class DriverAssist implements Executive {
 		if (HttpConnectUtil.get(url, jsonObj, rd)) {
 			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
 				Log.d("get evaluations", "failed to connect to server!");
-			}else{
+			} else {
 				return rd.strResponse;
 			}
 		}
 		return null;
 	}
-	//get histories
-	public String getHistory(long start,long end,int count){
+
+	// get histories
+	public String getHistory(long start, long end, int count) {
 		String url = HttpConnectUtil.WEB + "service/history";
 		HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
 		JSONObject jsonObj = new JSONObject();
 		try {
 			jsonObj.put("start_time", start);
 			jsonObj.put("end_time", end);
+			if (count == 0) {
+				count = 10;
+			}
 			jsonObj.put("count", count);
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -377,49 +414,54 @@ public class DriverAssist implements Executive {
 		if (HttpConnectUtil.get(url, jsonObj, rd)) {
 			if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
 				Log.d("get evaluations", "failed to connect to server!");
-			}else{
+			} else {
 				return rd.strResponse;
 			}
 		}
 		return null;
 	}
+
 	public void pause(SharedPreferences.Editor editor) {
-		editor.putInt(DriverConst.LOC_LAT,mTaxiPos.getLatitudeE6());
-		editor.putInt(DriverConst.LOC_LON,mTaxiPos.getLongitudeE6());
-		mHeart.stop();		
+		editor.putInt(DriverConst.LOC_LAT, mTaxiPos.getLatitudeE6());
+		editor.putInt(DriverConst.LOC_LON, mTaxiPos.getLongitudeE6());
+		mHeart.stop();
 	}
 
 	public void resume(SharedPreferences prefs) {
 		mTaxiPos = new GeoPoint(prefs.getInt(DriverConst.LOC_LAT, 0),
-				prefs.getInt(DriverConst.LOC_LON, 0));	
+				prefs.getInt(DriverConst.LOC_LON, 0));
 		if (DriverConst.LOGIN == mDriver.getPriStatus()) {
 			mHeart.start();
 		}
 	}
 
 	public void destroy() {
-		mHeart.stop();		
+		mHeart.stop();
 	}
-	public  boolean registerDirectly(String user,String psw,Bundle bundle) {
+
+	public boolean registerDirectly(String user, String psw, Bundle bundle) {
 		String url = HttpConnectUtil.WEB + DriverConst.LOGIN_SITE;
 		try {
 			JSONObject jsonObj = new JSONObject();
-				jsonObj.put("phone_number", user);
-				jsonObj.put("password", psw);
+			jsonObj.put("phone_number", user);
+			jsonObj.put("password", psw);
 			HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
 			if (HttpConnectUtil.post(url, jsonObj, rd)) {
 				if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
 					Log.d("get evaluations", "failed to connect to server!");
-					bundle.putString(DriverConst.RET_MSG, "login failed! \ndetail: \n"+rd.strResponse);
+					bundle.putString(DriverConst.RET_MSG,
+							"login failed! \ndetail: \n" + rd.strResponse);
 					return false;
-				}else{
+				} else {
 					jsonObj = new JSONObject(rd.strResponse);
-					bundle.putString(DriverConst.RET_MSG, jsonObj.getString("message"));
-					bundle.putString(DriverConst.RET_OBJ,jsonObj.getJSONObject("self").toString());
+					bundle.putString(DriverConst.RET_MSG,
+							jsonObj.getString("message"));
+					bundle.putString(DriverConst.RET_OBJ, jsonObj
+							.getJSONObject("self").toString());
 					return true;
 				}
-			}else{
-				Log.e("login",rd.strResponse);
+			} else {
+				Log.e("login", rd.strResponse);
 				return false;
 			}
 
@@ -429,5 +471,29 @@ public class DriverAssist implements Executive {
 			return false;
 		}
 
+	}
+
+	public static final Parcelable.Creator<DriverAssist> CREATOR = new Creator<DriverAssist>() {
+		public DriverAssist createFromParcel(Parcel source) {
+			DriverAssist assist = new DriverAssist();
+			return assist;
+		}
+
+		public DriverAssist[] newArray(int size) {
+			return new DriverAssist[size];
+		}
+	};
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags) {
+	}
+
+	public void setCommentId(long id) {
+		mCommentId = id;		
 	}
 }
