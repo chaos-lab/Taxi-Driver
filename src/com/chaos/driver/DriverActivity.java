@@ -622,4 +622,7 @@ public class DriverActivity extends MapActivity implements GestureHandler{
 		}).setNegativeButton("cancel",null).create();
 		dlg.show();
 	}
+	public void sendLocation(GeoPoint p,String name){
+		mAssist.sendLocation(p,name);
+	}
 }

@@ -7,6 +7,7 @@ public class DriverInfo {
 	private boolean mbFree;
 	double mScore; //average score
 	int mTotal;	//total service count
+	int mEvalTotle;//total evaluated service count
 
 	public DriverInfo(String nickName, String phoneNUm, String carNum) {
 		mNickName = nickName;
@@ -65,5 +66,13 @@ public class DriverInfo {
 	}
 	public int setTotal() {
 		return mTotal;
+	}
+
+	public int getEvalTotle() {
+		return mEvalTotle;
+	}
+
+	public void setEvalTotle(int cnt) {
+		this.mEvalTotle = cnt;
 	}
 }

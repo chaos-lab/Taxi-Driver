@@ -420,7 +420,23 @@ public class DriverAssist implements Executive, RecordDataProvider, Parcelable {
 		}
 		return null;
 	}
-
+	public void sendLocation(GeoPoint p,String name){
+		try{
+			JSONObject json = new JSONObject();
+			json.put("longitude",p.getLongitudeE6()/DriverConst.LOC2GEO);
+			json.put("latitude", p.getLatitudeE6()/DriverConst.LOC2GEO);
+			json.put("name", name);
+			String url = HttpConnectUtil.WEB + "location/create";
+			HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
+			if (HttpConnectUtil.get(url, json, rd)) {
+				if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
+					Log.d("get evaluations", "failed to connect to server!");
+				}
+			}
+		}catch(JSONException e){
+			e.printStackTrace();
+		}
+	}
 	public void pause(SharedPreferences.Editor editor) {
 		editor.putInt(DriverConst.LOC_LAT, mTaxiPos.getLatitudeE6());
 		editor.putInt(DriverConst.LOC_LON, mTaxiPos.getLongitudeE6());

@@ -72,24 +72,32 @@ public class RecordDataAdapter extends BaseExpandableListAdapter {
 				if (strDrv.length() > 0 && !strDrv.equals("null") ) {
 					JSONObject jsonDriver = new JSONObject(strDrv);
 					item.mCarNumber = jsonDriver.getString("car_number");
-					item.mPhoneNumber = jsonDriver.getString("phone_number");
-					item.mNickName = jsonDriver.getString("nickname");
 				}
 				if (strPsg.length() > 0 && !strPsg.equals("null") ) {
 					JSONObject jsonPsg = new JSONObject(strPsg);
+					item.mPhoneNumber = jsonPsg.getString("phone_number");
+					item.mNickName = jsonPsg.getString("nickname");
 				}
 				if (strDest.length() > 0 && !strDest.equals("null") ) {
 					JSONObject jsonDest = new JSONObject(strDest);
+					item.mDestinationLongitude = jsonDest.optDouble("longitude");
+					item.mDestinationLatitude = jsonDest.optDouble("latitude");
 				}
 				JSONObject jsonSrc = new JSONObject(strSrc);
+				item.mOriginLongitude = jsonSrc.getDouble("longitude");
+				item.mOriginLatitude = jsonSrc.getDouble("latitude");
 				if (strDrvEval.length() > 0 && !strDrvEval.equals("null") ) {
 					JSONObject jsonDrvEval = new JSONObject(strDrvEval);
 					item.mDriverComment = jsonDrvEval.getString("comment");
+					item.mDriverEvaluation = jsonDrvEval.getDouble("score");
+					item.mDriverCommentTimeStamp = jsonDrvEval.getLong("created_at");
 					item.mHistoryState = 1;
 				}
 				if (strPsgEval.length() > 0 && !strPsgEval.equals("null") ) {
 					JSONObject jsonPsgEval = new JSONObject(strPsgEval);
 					item.mPassengerComment = jsonPsgEval.getString("comment");
+					item.mPassengerEvaluation = jsonPsgEval.getDouble("score");
+					item.mPassengerCommentTimeStamp = jsonPsgEval.getLong("created_at");
 				}
 				item.mId = jsonHistory.getLong("id");
 				mRecordCellArray.add(item);
