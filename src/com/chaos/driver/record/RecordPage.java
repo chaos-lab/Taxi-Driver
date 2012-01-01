@@ -1,6 +1,8 @@
 package com.chaos.driver.record;
 
 import java.io.File;
+import java.util.Date;
+
 import com.chaos.driver.R;
 import com.chaos.driver.util.DriverConst;
 import com.chaos.driver.util.TaxiHistorySqlHelper;
@@ -25,7 +27,13 @@ public class RecordPage extends ExpandableListActivity {
 		mProvider.open();
 		mAdapter = new RecordDataAdapter(mProvider,(RecordDataProvider)this.getIntent().getExtras().getParcelable(DriverConst.SER_KEY),this);
 		//initProvider();
-		buildAdapter(System.currentTimeMillis());
+		Date date = new Date();
+		date.setYear(2011);
+		date.setMonth(12);
+		date.setDate(25);
+		date.setHours(12);
+		//String strTIme = "1324888477125";
+		buildAdapter(date.getTime());//System.currentTimeMillis());
 	}
 	public void onDestroy(){
 		super.onDestroy();

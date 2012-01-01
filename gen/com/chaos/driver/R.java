@@ -26,41 +26,49 @@ public final class R {
     }
     public static final class id {
         public static final int accept=0x7f080008;
-        public static final int backtocar=0x7f080017;
+        public static final int backtocar=0x7f08001e;
         public static final int caller_info=0x7f080006;
-        public static final int car_label=0x7f08000d;
-        public static final int car_number=0x7f08000e;
-        public static final int delete=0x7f08001b;
-        public static final int detail=0x7f080018;
+        public static final int car_label=0x7f080014;
+        public static final int car_number=0x7f080015;
+        public static final int delete=0x7f080022;
+        public static final int detail=0x7f08001f;
         public static final int et_comments=0x7f080005;
-        public static final int evaluate=0x7f080019;
-        public static final int free_declare=0x7f080016;
-        public static final int gesture=0x7f080011;
-        public static final int history=0x7f08001c;
-        public static final int login=0x7f080013;
-        public static final int mapView=0x7f080010;
-        public static final int message=0x7f080015;
-        public static final int name_label=0x7f08000b;
-        public static final int nick_name=0x7f08000c;
-        public static final int phone_num=0x7f080009;
-        public static final int psw=0x7f08000a;
+        public static final int evaluate=0x7f080020;
+        public static final int free_declare=0x7f08001d;
+        public static final int gesture=0x7f080018;
+        public static final int history=0x7f080023;
+        public static final int login=0x7f08001a;
+        public static final int mapView=0x7f080017;
+        public static final int message=0x7f08001c;
+        public static final int name_label=0x7f080012;
+        public static final int nick_name=0x7f080013;
+        public static final int phone_num=0x7f080010;
+        public static final int psw=0x7f080011;
         public static final int refuse=0x7f080007;
-        public static final int register=0x7f080012;
-        public static final int retrieve=0x7f08001a;
+        public static final int register=0x7f080019;
+        public static final int retrieve=0x7f080021;
+        public static final int score1=0x7f080009;
+        public static final int score2=0x7f08000a;
+        public static final int score3=0x7f08000b;
+        public static final int score4=0x7f08000c;
+        public static final int score5=0x7f08000d;
         public static final int star1=0x7f080000;
         public static final int star2=0x7f080001;
         public static final int star3=0x7f080002;
         public static final int star4=0x7f080003;
         public static final int star5=0x7f080004;
-        public static final int status=0x7f080014;
-        public static final int submit=0x7f08000f;
+        public static final int status=0x7f08001b;
+        public static final int submit=0x7f080016;
+        public static final int time=0x7f08000f;
+        public static final int tv_history=0x7f08000e;
     }
     public static final class layout {
         public static final int evaluate=0x7f030000;
         public static final int fetch_eval=0x7f030001;
         public static final int hire_call=0x7f030002;
-        public static final int login=0x7f030003;
-        public static final int main=0x7f030004;
+        public static final int history_item=0x7f030003;
+        public static final int login=0x7f030004;
+        public static final int main=0x7f030005;
     }
     public static final class menu {
         public static final int historymenu=0x7f070000;

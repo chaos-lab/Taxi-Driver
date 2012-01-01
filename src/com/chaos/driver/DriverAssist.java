@@ -13,6 +13,7 @@ import com.chaos.driver.record.RecordDataProvider;
 import com.chaos.driver.util.CellPositioning;
 import com.chaos.driver.util.DriverConst;
 import com.chaos.driver.util.HttpConnectUtil;
+import com.chaos.driver.util.TaxiHistorySqlHelper;
 import com.google.android.maps.GeoPoint;
 
 import android.content.Context;
@@ -37,9 +38,11 @@ public class DriverAssist implements Executive, RecordDataProvider, Parcelable {
 	private List<PassengerInfo> mLstPsgInfo;
 	private Heart mHeart;
 	private long mCommentId;
+	private TaxiHistorySqlHelper mProvider;
 
 	public DriverAssist(DriverActivity d) {
 		mDriver = d;
+		mProvider = new TaxiHistorySqlHelper(mDriver.getBaseContext());
 		mHandler = new Handler() {
 			public void handleMessage(Message msg) {
 				// send location update message to server
@@ -428,7 +431,7 @@ public class DriverAssist implements Executive, RecordDataProvider, Parcelable {
 			json.put("name", name);
 			String url = HttpConnectUtil.WEB + "location/create";
 			HttpConnectUtil.ResonpseData rd = new HttpConnectUtil.ResonpseData();
-			if (HttpConnectUtil.get(url, json, rd)) {
+			if (HttpConnectUtil.post(url, json, rd)) {
 				if (HttpConnectUtil.parseLoginResponse(rd.strResponse) != 0) {
 					Log.d("get evaluations", "failed to connect to server!");
 				}
@@ -511,5 +514,10 @@ public class DriverAssist implements Executive, RecordDataProvider, Parcelable {
 
 	public void setCommentId(long id) {
 		mCommentId = id;		
+	}
+
+	public void addLog() {
+		//HOW TO assign mId? equals to the service id?
+		mProvider.insertHistory(new TaxiHistorySqlHelper.HistoryItem());		
 	}
 }

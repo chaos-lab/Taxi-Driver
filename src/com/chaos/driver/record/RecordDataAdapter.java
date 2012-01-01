@@ -1,6 +1,7 @@
 package com.chaos.driver.record;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -17,6 +18,7 @@ import android.widget.TextView;
 
 import com.chaos.driver.CommentView;
 import com.chaos.driver.DriverActivity;
+import com.chaos.driver.HistoryItemView;
 import com.chaos.driver.util.DriverConst;
 import com.chaos.driver.util.TaxiHistorySqlHelper;
 import com.chaos.driver.util.TaxiHistorySqlHelper.HistoryItem;
@@ -28,85 +30,120 @@ public class RecordDataAdapter extends BaseExpandableListAdapter {
 	private int mCnt;
 	private Context mContext;
 	// data array
-	private ArrayList<HistoryItem> mRecordCellArray;
-	private long[] mID;
+	private ArrayList<HistoryItem>[] mRecordCellArray;
+	private long[][] mID;
 	private View[][] mViews;
 	public RecordDataAdapter(TaxiHistorySqlHelper provider,
 			RecordDataProvider serverProvider,Context context) {
 		mProvider = provider;
 		mServerProvider = serverProvider;
-		mRecordCellArray = new ArrayList<HistoryItem>();
+		mRecordCellArray = new ArrayList[3];
+		mRecordCellArray[0] = new ArrayList<HistoryItem>();
+		mRecordCellArray[1] = new ArrayList<HistoryItem>();
+		mRecordCellArray[2] = new ArrayList<HistoryItem>();
 		mContext = context;
 	}
 
 	public void loadData(long historyId,int cnt) {
-		mID = new long[cnt];
+		mID = new long[3][cnt];
 		mViews = new View[3][cnt];
 		try {
-			long starttime=0;
-			TaxiHistorySqlHelper.HistoryItem latestItem = mProvider.queryMaxIdHistory();
-			if(latestItem != null){
-				starttime = latestItem.mEndTimeStamp;
-			}
-			String strHistory = mServerProvider.getHistory(
-					0,historyId, 0);
-			if(strHistory.length() == 0){
-				return;
-			}
-			JSONObject jsonResp = new JSONObject(strHistory);
-			strHistory = jsonResp.optString("services");
-			if(strHistory == null || strHistory.length() == 0){
-				return;
-			}
-			JSONArray historyArray = new JSONArray(strHistory);
-			for (mCnt = 0; mCnt < historyArray.length() && mCnt < cnt; mCnt++) {
-				TaxiHistorySqlHelper.HistoryItem item = new TaxiHistorySqlHelper.HistoryItem();
-				JSONObject jsonHistory = historyArray.getJSONObject(mCnt);
-				String strDrv = jsonHistory.optString("driver");
-				String strPsg = jsonHistory.optString("passenger");
-				String strDest = jsonHistory.optString("destination");
-				String strSrc = jsonHistory.getString("origin");
-				String strDrvEval = jsonHistory.optString("driver_evaluation");
-				String strPsgEval = jsonHistory
-						.optString("passenger_evaluation");
-				if (strDrv.length() > 0 && !strDrv.equals("null") ) {
-					JSONObject jsonDriver = new JSONObject(strDrv);
-					item.mCarNumber = jsonDriver.getString("car_number");
+			final long day_ms = 24*60*60*1000;	//ms
+			final long day = historyId / day_ms;
+			TaxiHistorySqlHelper.HistoryItem latestItem = mProvider
+			.queryMaxIdHistory();
+			long[][] time = new long[3][2];
+			//today start
+			time[2][0] = day * day_ms;
+			//today end
+			time[2][1] = historyId;
+			//yesterday end
+			time[1][1] = time[2][0];
+			//yesterday start
+			time[1][0] = time[1][1] - day_ms;
+			//before
+			time[0][1] = time[1][0];
+			time[0][0] = 0;
+			for (int i = 2; i >= 0; i--) {
+				long startTime = time[i][0];
+				long endTime = time[i][1];
+				//get current day records
+				if (latestItem != null) {
+					if(endTime <= latestItem.mEndTimeStamp){
+						break;
+					}
+					if(startTime < latestItem.mEndTimeStamp){
+						startTime = latestItem.mEndTimeStamp;
+					}
 				}
-				if (strPsg.length() > 0 && !strPsg.equals("null") ) {
-					JSONObject jsonPsg = new JSONObject(strPsg);
-					item.mPhoneNumber = jsonPsg.getString("phone_number");
-					item.mNickName = jsonPsg.getString("nickname");
+				String strHistory = mServerProvider.getHistory(startTime, endTime, 0);
+				if (strHistory.length() == 0) {
+					return;
 				}
-				if (strDest.length() > 0 && !strDest.equals("null") ) {
-					JSONObject jsonDest = new JSONObject(strDest);
-					item.mDestinationLongitude = jsonDest.optDouble("longitude");
-					item.mDestinationLatitude = jsonDest.optDouble("latitude");
+				JSONObject jsonResp = new JSONObject(strHistory);
+				strHistory = jsonResp.optString("services");
+				if (strHistory == null || strHistory.length() == 0) {
+					return;
 				}
-				JSONObject jsonSrc = new JSONObject(strSrc);
-				item.mOriginLongitude = jsonSrc.getDouble("longitude");
-				item.mOriginLatitude = jsonSrc.getDouble("latitude");
-				if (strDrvEval.length() > 0 && !strDrvEval.equals("null") ) {
-					JSONObject jsonDrvEval = new JSONObject(strDrvEval);
-					item.mDriverComment = jsonDrvEval.getString("comment");
-					item.mDriverEvaluation = jsonDrvEval.getDouble("score");
-					item.mDriverCommentTimeStamp = jsonDrvEval.getLong("created_at");
-					item.mHistoryState = 1;
+				JSONArray historyArray = new JSONArray(strHistory);
+				for (mCnt = 0; mCnt < historyArray.length() && mCnt < cnt; mCnt++) {
+					TaxiHistorySqlHelper.HistoryItem item = new TaxiHistorySqlHelper.HistoryItem();
+					JSONObject jsonHistory = historyArray.getJSONObject(mCnt);
+					String strDrv = jsonHistory.optString("driver");
+					String strPsg = jsonHistory.optString("passenger");
+					String strDest = jsonHistory.optString("destination");
+					String strSrc = jsonHistory.getString("origin");
+					String strDrvEval = jsonHistory
+							.optString("driver_evaluation");
+					String strPsgEval = jsonHistory
+							.optString("passenger_evaluation");
+					if (strDrv.length() > 0 && !strDrv.equals("null")) {
+						JSONObject jsonDriver = new JSONObject(strDrv);
+						item.mCarNumber = jsonDriver.getString("car_number");
+					}
+					if (strPsg.length() > 0 && !strPsg.equals("null")) {
+						JSONObject jsonPsg = new JSONObject(strPsg);
+						item.mPhoneNumber = jsonPsg.getString("phone_number");
+						item.mNickName = jsonPsg.getString("nickname");
+					}
+					if (strDest.length() > 0 && !strDest.equals("null")) {
+						JSONObject jsonDest = new JSONObject(strDest);
+						item.mDestinationLongitude = jsonDest
+								.optDouble("longitude");
+						item.mDestinationLatitude = jsonDest
+								.optDouble("latitude");
+					}
+					JSONObject jsonSrc = new JSONObject(strSrc);
+					item.mOriginLongitude = jsonSrc.getDouble("longitude");
+					item.mOriginLatitude = jsonSrc.getDouble("latitude");
+					if (strDrvEval.length() > 0 && !strDrvEval.equals("null")) {
+						JSONObject jsonDrvEval = new JSONObject(strDrvEval);
+						item.mDriverComment = jsonDrvEval.getString("comment");
+						item.mDriverEvaluation = jsonDrvEval.getDouble("score");
+						item.mDriverCommentTimeStamp = jsonDrvEval
+								.getLong("created_at");
+						item.mHistoryState = 1;
+					}
+					if (strPsgEval.length() > 0 && !strPsgEval.equals("null")) {
+						JSONObject jsonPsgEval = new JSONObject(strPsgEval);
+						item.mPassengerComment = jsonPsgEval
+								.getString("comment");
+						item.mPassengerEvaluation = jsonPsgEval
+								.getDouble("score");
+						item.mPassengerCommentTimeStamp = jsonPsgEval
+								.getLong("created_at");
+					}
+					item.mId = jsonHistory.getLong("id");
+					mRecordCellArray[i].add(item);
+					mProvider.insertHistory(item);
+					mID[i][mCnt] = jsonHistory.getInt("id");
 				}
-				if (strPsgEval.length() > 0 && !strPsgEval.equals("null") ) {
-					JSONObject jsonPsgEval = new JSONObject(strPsgEval);
-					item.mPassengerComment = jsonPsgEval.getString("comment");
-					item.mPassengerEvaluation = jsonPsgEval.getDouble("score");
-					item.mPassengerCommentTimeStamp = jsonPsgEval.getLong("created_at");
-				}
-				item.mId = jsonHistory.getLong("id");
-				mRecordCellArray.add(item);
-				mProvider.insertHistory(item);
-				mID[mCnt] = jsonHistory.getInt("id");
+
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();
-		}/*
+		}
+		/*
 		ArrayList<HistoryItem> items = mProvider.batchQueryHistory(historyId,
 				DriverConst.RECORD_CNT);
 		if (items == null) {
@@ -181,10 +218,10 @@ public class RecordDataAdapter extends BaseExpandableListAdapter {
 		if (groupPos < 0 || groupPos > groups.length) {
 			return null;
 		}
-		if (childPos < 0 || childPos >= DriverConst.RECORD_CNT) {
+		if (childPos < 0 || childPos >= mRecordCellArray[groupPos].size()) {
 			return null;
 		}
-		return mRecordCellArray.get(childPos);
+		return mRecordCellArray[groupPos].get(childPos);
 	}
 
 	@Override
@@ -192,22 +229,28 @@ public class RecordDataAdapter extends BaseExpandableListAdapter {
 		if (groupPos < 0 || groupPos > groups.length) {
 			return -1;
 		}
-		if (childPos < 0 || childPos >= DriverConst.RECORD_CNT) {
+		if (childPos < 0 || childPos >= mRecordCellArray[groupPos].size()) {
 			return -1;
 		}
-		return mID[childPos];
+		return mID[groupPos][childPos];
 	}
 
 	@Override
 	public View getChildView(int groupPos, int childPos, boolean bLastOne,
 			View oldView, ViewGroup parent) {
+		if (groupPos < 0 || groupPos > groups.length) {
+			return null;
+		}
+		if (childPos < 0 || childPos >= mRecordCellArray[groupPos].size()) {
+			return null;
+		}
 		mViews[groupPos][childPos] = getGenericView(DriverConst.ITEM, groupPos, childPos);
 		return mViews[groupPos][childPos];
 	}
 	
 	@Override
 	public int getChildrenCount(int groupPos) {
-		return mCnt;
+		return mRecordCellArray[groupPos].size();
 	}
 
 	@Override
@@ -244,23 +287,30 @@ public class RecordDataAdapter extends BaseExpandableListAdapter {
 		return true;
 	}
 
-	public TextView getGenericView(int type, int groupPos, int childPos) {
+	public View getGenericView(int type, int groupPos, int childPos) {
 		// Layout parameters for the ExpandableListView
-		TextView textView = new TextView(mContext);
 		// Center the text vertically
-		textView.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
 		// Set the text starting position
 		if (type == DriverConst.TITLE) {
+			TextView textView = new TextView(mContext);
+			textView.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
 			AbsListView.LayoutParams lp = new AbsListView.LayoutParams(
 					ViewGroup.LayoutParams.MATCH_PARENT, 64);
 			textView.setLayoutParams(lp);
 			textView.setPadding(50, 0, 0, 0);
 			textView.setText((String) getGroup(groupPos));
+			return textView;
 		} else {
-			AbsListView.LayoutParams lp = new AbsListView.LayoutParams(
-					ViewGroup.LayoutParams.MATCH_PARENT,
-					ViewGroup.LayoutParams.WRAP_CONTENT);
-			textView.setLayoutParams(lp);
+			HistoryItem item = (HistoryItem) getChild(groupPos, childPos);
+			int score = 0;
+			if(item.mPassengerEvaluation!=null){
+				score = item.mPassengerEvaluation.intValue();
+			}
+			long time = 0;
+			if(item.mPassengerCommentTimeStamp != null){
+				time = item.mPassengerCommentTimeStamp;
+			}
+			HistoryItemView view = new HistoryItemView(mContext,score,item.toString(),time);
 			//textView.setClickable(true);
 			//textView.setId((groupPos << 0xffff) | (childPos & 0xffff));
 			/*textView.setOnClickListener(new OnClickListener() {
@@ -270,13 +320,8 @@ public class RecordDataAdapter extends BaseExpandableListAdapter {
 					}
 				}
 			});*/
-			textView.setPadding(36, 0, 0, 0);
-			textView.setScrollContainer(true);
-			textView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
-			textView.setScrollbarFadingEnabled(true);
-			textView.setText(getChild(groupPos, childPos).toString());
+			return view;
 		}
-		return textView;
 	}
 
 }

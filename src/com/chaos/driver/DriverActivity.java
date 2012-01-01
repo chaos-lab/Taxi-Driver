@@ -348,6 +348,7 @@ public class DriverActivity extends MapActivity implements GestureHandler{
 			updateUI();
 		} else if (mAssist.declareFree(mSelPassenger.getID())) {
 			setStatus(DriverConst.IDLE);
+			mAssist.addLog();
 			showEvaluate(this,mSelPassenger.getID());
 			updateUI();
 			mSelPassenger = null;
